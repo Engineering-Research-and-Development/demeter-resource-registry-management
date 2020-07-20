@@ -1,0 +1,25 @@
+info:
+  component: Resource Registry Management
+
+spring:
+  application:
+    name: resource-registry-management
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: test
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+server:
+  port: 17100
+
+logging:
+  file:
+    name: logs/${spring.application.name}/spring-boot.log
