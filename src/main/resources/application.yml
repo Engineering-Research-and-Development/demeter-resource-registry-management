@@ -6,9 +6,10 @@ spring:
     name: resource-registry-management
   data:
     mongodb:
+      # Setting for local instance of MongoDB
       host: localhost
-      port: 27017
-      database: test
+      port: 28017
+      database: resource_registry_db
 
 
 management:
