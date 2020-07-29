@@ -91,8 +91,6 @@ Project supports Swagger, so all endpoints after starting an application are ava
 | **/api/v1/resources/{uid}**    | **GET**      | Find resource by uid                             | Resource uid                         | Resource with all details                               |
 | **/api/v1/resources/search**   | **GET**      | Advanced searching and filtering resources       | Value of any Resource attribute      | Resources that match the search criteria                |
 
-**Example of using search**
-
 
 ## Troubleshoot
 **TO DO**
@@ -104,6 +102,7 @@ Project supports Swagger, so all endpoints after starting an application are ava
 * [Slobodan Paunovic](https://github.com/slobodan82) 
 
 ## Status
-Project is: _in progress_ Code is available on: 
+Project is: _in progress_ 
+Current implementation is available on: https://github.com/Engineering-Research-and-Development/demeter-resource-registry-management
 
 ## License
