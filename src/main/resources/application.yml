@@ -17,8 +17,8 @@ management:
       exposure:
         include: health,info
 
-#server:
-#  port: 17100
+server:
+  port: 17100
 
 logging:
   file:
