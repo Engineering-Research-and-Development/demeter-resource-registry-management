@@ -10,7 +10,7 @@ import java.util.Date;
 import java.util.List;
 
 @Data
-@Document
+@Document(collection = "deh_resource")
 public class DEHResource {
 
     @Id
