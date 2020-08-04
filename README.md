@@ -1,108 +1,176 @@
 ![](https://portal.ogc.org/files/?artifact_id=92076)
-# Resource Registry Management
+# Demeter DEH Dashboard
 
-Core DEH (Demeter Enabler Hub) module provides functionalities for the resource management process and interfacing with other components such as Compatibility Checker and Discovery Management.
+ 
 
+DEH Dashboard represents the DEH front-end application, which will be used by end-users or DEMETER Stakeholders for resource creation or discovery. The DEH resources are represented by a set of entities such as Component, Device, Service, Dataset, Platform which can be added via the DEH Dashboard or web-based UI (User Interface). 
+DEH Dashboard functional module is in charge for User Interaction & Data Visualisation. It will allow users to login to DEH, discover, register and manage DEMETER Enablers.
+
+ 
 
 ## Table of contents
+* [**Screenshots**](#screenshots)
 * [**Technologies**](#technologies)
 * [**Features**](#features)
 * [**Requirements**](#requirements)
 * [**Setup**](#setup)
-* [**How to use**](#how-to-use)
-* [**Endpoints**](#endpoints)
-* [**Troubleshoot**](#troubleshoot)
+* [**How to use**](#using)
 * [**Contributors**](#contributors)
 * [**Status**](#status)
 * [**Licence**](#licence)
 
+ 
+
+## Screenshots
+
+### List of resources
+![](screenshots/list.png)
+
+### Resource details
+
+![](screenshots/details.png)
+
+### Add new resource
+![](screenshots/add_new.png)
+
+### Update resource
+![](screenshots/update.png)
+
+### Filter resource list
+![](screenshots/search.png)
+
+ 
 
 ## Technologies
 
-| Description                                     | Language | Version          |
-| :---------------------------------------------- | :------: | :--------------: |
-| [Java SE Development Kit 8][1]                  | Java     | 1.8.0_251        |
-| [Spring Boot][2]                                | Java     | 2.3.1            |
-| [Apache Maven 3][3]                             |          | 3.6.3            |
-| [Apache Tomcat 9][4]                            |          | 9.0.36           |
-| [MongoDB][5]                                    |          | 4.2.8            |
-| [Docker][6]                                     |          | 19.03.12         |
+ 
+
+| Description   | Language      | Version |
+| ------------- |:-------------:| -------:|
+| [Angular][1]  | JavaScript    | 10.0.2  |
+| [Docker][2]   |               | 19.03.8 |
+
+ 
 
 
-[1]: https://www.oracle.com/it/java/technologies/javase/javase-jdk8-downloads.html
-[2]: https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/
-[3]: http://maven.apache.org/ 
-[4]: https://tomcat.apache.org/tomcat-9.0-doc/changelog.html
-[5]: https://www.mongodb.com/try/download/community
-[6]: https://docs.docker.com/get-docker/
+[1]: https://angular.io/
+[2]: https://docs.docker.com/get-docker/
 
+ 
 
 ## Features
 
-* Searching Resources
-* Accessing Resources
-* Preparing Resource for storing
-* Storing Resources
-* Editing Resources
-* Deleting Resources
+ 
 
+* User profile management
+* Resource discovery through search API
+* New resources creation and editing
+* Resource compatibility checking
+* Resource rating visualisation
+
+ 
 
 ## Requirements
-**_Current setup includes build Spring Boot image locally, since the image is not available on Docker Hub, so next two requirements are currently mandatory_**
 
-* Installed Java JDK (Version > 8) 
-* Installed Apache Maven
+ 
 
-**_After having Docker image available on Docker hub, only those requirements will be mandatory_**
-* Installed Docker
-* Installed Docker Compose
+This procedure assumes that you have Node.js (version >= 12) and Docker (version >= 18) installed in your environment.
 
+ 
 
 ## Setup
 
-**_Current setup includes build Spring Boot image locally, since the image is not available on Docker Hub_**
+ 
 
-After pulling the source code, open terminal and go to root folder and follow next steps:
+After pulling the source code, go to root folder and follow next steps:
 
-* _Run_ `mvn install` _to build jar locally_. 
-* _After operation is complete, run_ `docker build -t resource-registry-management .` _in order to build the docker image_
-* _After the image is built, run_ `docker-compose up` _to run Docker Compose with server image and MongoDB_
-* _If you want to run containers in background run next command_ `docker-compose up -d`
+ 
 
+### Run application using docker
+------
 
+ 
+
+* go to root folder where docker file (Dockerfile) is, type comand `docker build -t demeter/deh-dashboard .` to create docker image.
+* in terminal type `docker run -p 8080:80 demeter/deh-dashboard` to start docker image.  
+
+ 
+
+### Local development
+------
+
+ 
+
+##### Development server
+
+ 
+
+* Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+
+ 
+
+##### Code scaffolding
+
+ 
+
+* Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+
+ 
+
+##### Build
+
+ 
+
+* Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
+
+ 
+
+##### Running unit tests
+
+ 
+
+* Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+
+ 
+
+##### Running end-to-end tests
+* Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
+
+ 
+
+##### Further help
+
+ 
+
+* To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+
+ 
 
 ## How to use
 
-After containers are up and running, you can use Resource Registry Management through exposed REST API endpoints.
+ 
 
+* Open an application in your browser at `localhost:8080/`
 
-## Endpoints
-
-Project supports Swagger, so all endpoints after starting an application are available for testing on `http://localhost:17100/swagger-ui.html` 
-
-**List of endpoints**
-
-
-| URL                            | Type         | Used for                                         | Input                                | Output                                                  |
-| :----------------------------- | :----------: | :----------------------------------------------- | :----------------------------------- | :------------------------------------------------------ |
-| **/api/v1/resources**          | **GET**      | Get list of all resources                        |                                      | List of all resources                                   |
-| **/api/v1/resources**          | **POST**     | Save a new resource                              | Resource with attributes             | Saved resources with all details                        |
-| **/api/v1/resources/{uid}**    | **DELETE**   | Delete existing Resource                         | Resource uid                         | Resource deleted                                        |
-| **/api/v1/resources/{uid}**    | **GET**      | Find resource by uid                             | Resource uid                         | Resource with all details                               |
-| **/api/v1/resources/search**   | **GET**      | Advanced searching and filtering resources       | Value of any Resource attribute      | Resources that match the search criteria                |
-
-
-## Troubleshoot
-**TO DO**
-
+ 
 
 ## Contributors
+
+ 
 
 * [Marko Stojanovic](https://github.com/marest94) 
 * [Slobodan Paunovic](https://github.com/slobodan82) 
 
+ 
+
 ## Status
-Project is: _in progress_ 
-Current implementation is available on: https://github.com/Engineering-Research-and-Development/demeter-resource-registry-management
+Project is: _in progress_
+
+ 
 
 ## License
+<!--- If you're not sure which open license to use see https://choosealicense.com/--->
+
+ 
+
+This project uses the following license: [<license_name>](<link>).
