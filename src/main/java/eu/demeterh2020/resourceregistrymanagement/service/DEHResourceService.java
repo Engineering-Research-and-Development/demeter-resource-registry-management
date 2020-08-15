@@ -6,18 +6,19 @@ import eu.demeterh2020.resourceregistrymanagement.domain.DEHResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.io.IOException;
+import java.util.Optional;
+
 
 public interface DEHResourceService {
 
-    /**
-     * @param dehResource
-     * @return
-     */
     DEHResource saveDEHResource(DEHResource dehResource);
+
+    DEHResource update(String uid, String data) throws IOException;
 
     void deleteDEHResource(String uid);
 
-    DEHResource findByUid(String uid);
+    Optional<DEHResource> findByUid(String uid);
 
     Page<DEHResource> findAll(Pageable pageable);
 

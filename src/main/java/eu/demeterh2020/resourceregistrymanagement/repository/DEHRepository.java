@@ -11,27 +11,21 @@ import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
 import org.springframework.data.querydsl.binding.QuerydslBindings;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface DEHRepository extends MongoRepository<DEHResource, String>, QuerydslPredicateExecutor<DEHResource>, QuerydslBinderCustomizer<QDEHResource> {
 
-    DEHResource findByUid(String uid);
-
-    DEHResource findByName(String name);
+    Optional<DEHResource> findByUid(String uid);
 
     Page<DEHResource> findAll(Pageable page);
 
     Page<DEHResource> findAll(Predicate predicate, Pageable pageable);
 
-    Page<DEHResource> findAllByName(String name, Pageable pageable);
-
-    Page<DEHResource> findAllByCategory(String category, Pageable pageable);
-
-    Page<DEHResource> findAllByOwner(String owner, Pageable pageable);
-
 
     @Override
     default void customize(QuerydslBindings bindings, QDEHResource root) {
-        //TODO Refactor
+        //TODO Refactor and add binding for ListPath<String, StringPath>
         bindings.bind(root.uid).first((path, value) -> path.containsIgnoreCase(value));
         bindings.bind(root.name).first((path, value) -> path.containsIgnoreCase(value));
         bindings.bind(root.type).first((path, value) -> path.containsIgnoreCase(value));
