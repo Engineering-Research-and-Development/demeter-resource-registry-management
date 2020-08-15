@@ -19,6 +19,8 @@ management:
 
 server:
   port: 17100
+  error:
+    include-message: always
 
 logging:
   file:
