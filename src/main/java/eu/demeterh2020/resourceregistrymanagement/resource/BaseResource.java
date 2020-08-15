@@ -14,7 +14,7 @@ import java.util.Map;
 
 public abstract class BaseResource {
 
-    private final static Logger log = LoggerFactory.getLogger(eu.demeterh2020.resourceregistrymanagement.resource.BaseResource.class);
+    private final static Logger log = LoggerFactory.getLogger(BaseResource.class);
 
     @ExceptionHandler(Exception.class)
     @ResponseBody
