@@ -46,7 +46,7 @@ public class DEHResourceApi {
     }
 
     @PatchMapping(path = "/{uid}", consumes = {"application/merge-patch+json"})
-    public ResponseEntity<DEHResource> updateUserDetails(@PathVariable(value = "uid") String uid, @RequestBody String data) throws IOException {
+    public ResponseEntity<DEHResource> updateResource(@PathVariable(value = "uid") String uid, @RequestBody String data) throws IOException {
 
         Optional<DEHResource> dehResource = dehResourceService.findByUid(uid);
 
