@@ -2,9 +2,14 @@ package eu.demeterh2020.resourceregistrymanagement.resource;
 
 import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.DEHResource;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.DEHResourceDTO;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceNotFoundException;
+import eu.demeterh2020.resourceregistrymanagement.service.AuditService;
 import eu.demeterh2020.resourceregistrymanagement.service.DEHResourceService;
 import io.swagger.annotations.Api;
+import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,54 +27,77 @@ import java.util.Optional;
 @Api(value = "DEH Resources REST API")
 public class DEHResourceApi {
 
+    private final static Logger log = LoggerFactory.getLogger(DEHResourceApi.class);
+
     @Autowired
     private DEHResourceService dehResourceService;
 
+    @Autowired
+    private AuditService auditService;
+
+    @Autowired
+    private ModelMapper modelMapper;
+
+
     @PostMapping
     public DEHResource saveDehResource(@RequestBody DEHResource dehResource) {
+        // Store DEH resource in DB
+        DEHResource savedResource = dehResourceService.save(dehResource);
 
-        return dehResourceService.saveDEHResource(dehResource);
+        // Create audit data for stored DEH Resource
+        auditService.save(savedResource);
+
+        return savedResource;
     }
 
     @DeleteMapping(value = "/{uid}")
     public ResponseEntity deleteDehResource(@PathVariable("uid") String uid) {
 
-        Optional<DEHResource> dehResource = dehResourceService.findByUid(uid);
+        Optional<DEHResource> dehResource = dehResourceService.findOneByUid(uid);
 
-        if (!dehResource.isPresent()) {
-            throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
-        } else {
-            dehResourceService.deleteDEHResource(uid);
+        if (dehResource.isPresent()) { // resource exist in DB
+            dehResourceService.deleteByUid(uid);
+            if (!dehResourceService.existByUid(uid)) { // verify that resource is deleted
+                auditService.deleteByResourceUid(uid);
+            }
 
             return ResponseEntity.status(HttpStatus.OK).body("Successfully deleted resource with uid: " + uid);
         }
+
+        log.error("Resource with uid:" + uid + " not found");
+        throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
     }
 
     @PatchMapping(path = "/{uid}", consumes = {"application/merge-patch+json"})
-    public ResponseEntity<DEHResource> updateResource(@PathVariable(value = "uid") String uid, @RequestBody String data) throws IOException {
+    public DEHResourceDTO updateResource(@PathVariable(value = "uid") String uid, @RequestBody String data) throws IOException {
 
-        Optional<DEHResource> dehResource = dehResourceService.findByUid(uid);
+        Optional<DEHResource> dehResource = dehResourceService.findOneByUid(uid);
 
-        if (!dehResource.isPresent()) {
-            throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
-        } else {
-            DEHResource userDetails = dehResourceService.update(uid, data);
+        if (dehResource.isPresent()) { // resource exist in DB
+            DEHResource updatedResource = dehResourceService.update(uid, data);
+            // Update Audit data for DEH Resource
+            auditService.update(updatedResource, data);
 
-            return ResponseEntity.status(HttpStatus.OK).body(userDetails);
+            return convertToDto(updatedResource);
         }
+        log.error("Resource with uid:" + uid + " not found");
+        throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
+
     }
 
     @GetMapping(value = "/{uid}")
-    public Optional<DEHResource> findOneByUid(@PathVariable String uid) {
+    public DEHResourceDTO findOneByUid(@PathVariable String uid) {
 
-        Optional<DEHResource> dehResource = dehResourceService.findByUid(uid);
+        Optional<DEHResource> dehResource = dehResourceService.findOneByUid(uid);
 
-        if (!dehResource.isPresent()) {
-            throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
-        } else {
-            return dehResource;
+        if (dehResource.isPresent()) { // resource exist in DB
+            // Covert fethed resoruce to DTO object
+            return convertToDto(dehResource.get());
         }
+        log.error("Resource with uid:" + uid + " not found");
+        throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
     }
+
 
     @GetMapping
     public Page<DEHResource> findAll(@RequestParam(name = "page", required = false, defaultValue = "0") int page,
@@ -92,8 +120,8 @@ public class DEHResourceApi {
                                     @RequestParam(name = "version", required = false) String version,
                                     @RequestParam(name = "owner", required = false) String owner,
                                     @RequestParam(name = "rating", required = false) Double rating,
-                                    @RequestParam(name = "accessibility", required = false) String accessibility,
                                     @RequestParam(name = "url", required = false) String url,
+                                    @RequestParam(name = "accessibility", required = false) int accessibility,
                                     //TODO Finish  after holiday binding for advanced search for next params
 //                                    @RequestParam(name = "category", required = false) String category,
 //                                    @RequestParam(name = "tags", required = false) String tags,
@@ -109,4 +137,39 @@ public class DEHResourceApi {
 
         return dehResourceService.findAllByQuery(predicate, pageable);
     }
+
+    @PostMapping(value = "{uid}/rate")
+    public DEHResource rateResource(@PathVariable String uid) {
+
+        //TODO finish
+        return null;
+    }
+
+    @GetMapping(value = "{uid}/download")
+    public void download(@PathVariable String uid) {
+
+        Optional<DEHResource> dehResource = dehResourceService.findOneByUid(uid);
+
+        if (dehResource.isPresent()) {
+            //TODO implement download steps
+            auditService.updateHistoryConsumptionByUid(uid);
+
+        } else {
+            log.error("Resource with uid:" + uid + " not found");
+            throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
+        }
+    }
+
+    /**
+     * Private method for converting DEHResource to DTO object which adds History Consumption form audit data
+     */
+    private DEHResourceDTO convertToDto(DEHResource dehResource) {
+        // Mapping DEHResource to existing fields in DEHResourceDTO
+        DEHResourceDTO dehResourceDto = modelMapper.map(dehResource, DEHResourceDTO.class);
+        //Set consumption History for DEHResource
+        dehResourceDto.setHistoryConsumption(auditService.getHistoryConsumptionForResource(dehResource.getUid()));
+
+        return dehResourceDto;
+    }
 }
+
