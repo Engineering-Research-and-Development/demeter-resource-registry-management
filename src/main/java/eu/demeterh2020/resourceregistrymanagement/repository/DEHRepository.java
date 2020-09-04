@@ -22,6 +22,10 @@ public interface DEHRepository extends MongoRepository<DEHResource, String>, Que
 
     Page<DEHResource> findAll(Predicate predicate, Pageable pageable);
 
+    void deleteByUid(String uid);
+
+    boolean existsByUid(String uid);
+
 
     @Override
     default void customize(QuerydslBindings bindings, QDEHResource root) {
