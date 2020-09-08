@@ -54,9 +54,6 @@ public class DEHResourceApi {
 
         if (dehResource.isPresent()) { // resource exist in DB
             dehResourceService.deleteByUid(uid);
-            if (!dehResourceService.existByUid(uid)) { // verify that resource is deleted
-                auditService.deleteByResourceUid(uid);
-            }
 
             return ResponseEntity.status(HttpStatus.OK).body("Successfully deleted resource with uid: " + uid);
         }
@@ -90,7 +87,7 @@ public class DEHResourceApi {
         if (dehResource.isPresent()) { // resource exist in DB
             // Store history consumption
             auditService.updateHistoryConsumptionByUid(uid);
-            // Covert fethed resoruce to DTO object
+            // Convert fetched DEHResource to DTO object
             return convertToDto(dehResource.get());
         }
         log.error("Resource with uid:" + uid + " not found");
@@ -120,9 +117,8 @@ public class DEHResourceApi {
                                     @RequestParam(name = "owner", required = false) String owner,
                                     @RequestParam(name = "rating", required = false) Double rating,
                                     @RequestParam(name = "url", required = false) String url,
-                                    @RequestParam(name = "uid", required = false) String uid,
-
-//                                    @RequestParam(name = "accessibility", required = false) int accessibility,
+                                    @RequestParam(name = "accessibility", required = false) int accessibility,
+                                    @RequestParam(name = "maturityLevel", required = false) int maturityLevel,
                                     //TODO Finish  after holiday binding for advanced search for next params
 //                                    @RequestParam(name = "category", required = false) String category,
 //                                    @RequestParam(name = "tags", required = false) String tags,
@@ -131,7 +127,6 @@ public class DEHResourceApi {
 //                                    @RequestParam(name = "dependencies", required = false) String dependencies,
 //                                    @RequestParam(name = "accessControlPolicies", required = false) String accessControlPolicies,
 //                                    @RequestParam(name = "billingInformation", required = false) String billingInformation,
-//                                    @RequestParam(name = "maturityLevel", required = false) int maturityLevel,
 
                                     Pageable pageable,
                                     @QuerydslPredicate(root = DEHResource.class) Predicate predicate) {
