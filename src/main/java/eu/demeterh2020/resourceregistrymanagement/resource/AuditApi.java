@@ -36,13 +36,14 @@ public class AuditApi {
     }
 
     @GetMapping(value = "/{uid}")
-    public Audit findOneByUid(@PathVariable String uid) {
+    public Audit findOneByResourceUid(@PathVariable String uid) {
 
         Optional<Audit> audit = auditService.findOneByResourceUid(uid);
 
         if (audit.isPresent()) { // audit for resource exist in DB
             return audit.get();
         }
+
         log.error("Audit data for resource with uid:" + uid + " not found");
         throw new ResourceNotFoundException("Audit data for resource with uid:" + uid + " not found");
     }
