@@ -4,10 +4,7 @@ import eu.demeterh2020.resourceregistrymanagement.domain.Audit;
 import eu.demeterh2020.resourceregistrymanagement.domain.DEHResource;
 import eu.demeterh2020.resourceregistrymanagement.service.AuditService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventListener;
-import org.springframework.data.mongodb.core.mapping.event.AfterDeleteEvent;
-import org.springframework.data.mongodb.core.mapping.event.AfterSaveEvent;
-import org.springframework.data.mongodb.core.mapping.event.BeforeSaveEvent;
+import org.springframework.data.mongodb.core.mapping.event.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,15 +16,20 @@ public class DEHResourceMongoEventListener extends AbstractMongoEventListener<DE
     @Autowired
     AuditService auditService;
 
+
     @Override
     public void onBeforeSave(BeforeSaveEvent<DEHResource> event) {
         super.onBeforeSave(event);
+        // Set date of creation of a resource
         event.getSource().setCreateAt(LocalDateTime.now());
     }
 
+    /* Method for creating and storing Audit data for after DEHResource is stored in DB
+     */
     @Override
     public void onAfterSave(AfterSaveEvent<DEHResource> event) {
         super.onAfterSave(event);
+
         Map<String, LocalDateTime> versions = new HashMap<String, LocalDateTime>() {
             {
                 put(event.getSource().getVersion(), event.getSource().getCreateAt());
@@ -40,11 +42,12 @@ public class DEHResourceMongoEventListener extends AbstractMongoEventListener<DE
          auditService.save(newAuditResource);
     }
 
+    /* Method for deleting Audit data after DEHResource is deleted from DB
+     */
     @Override
     public void onAfterDelete(AfterDeleteEvent<DEHResource> event) {
         super.onAfterDelete(event);
-        //TODO add business logic for deleting audit data after deleting DEHResource
+
+        auditService.deleteByResourceUid(event.getSource().get("_id").toString());
     }
-
-
 }
