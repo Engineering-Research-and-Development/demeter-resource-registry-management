@@ -31,6 +31,7 @@ public interface DEHRepository extends MongoRepository<DEHResource, String>, Que
     @Override
     default void customize(QuerydslBindings bindings, QDEHResource root) {
 
+        bindings.excluding(root.uid);
         bindings.bind(String.class).first(
                 (StringPath path, String value) -> path.containsIgnoreCase(value));
         bindings.bind(root.category).first((path, value) -> path.any().containsIgnoreCase(value.iterator().next()));
