@@ -1,0 +1,28 @@
+version: "3.5"
+services:
+  resource-registry-db:
+    image: mongo:4.2.8
+    container_name: resource-registry-db
+    hostname: mongodb
+    ports:
+      - ${MONGO_DB_PORT}:${MONGO_DB_PORT}
+    volumes:
+      - resource_registry_db:/data/db
+      - resource_registry_db:/data/configdb
+
+  resource-registry-management:
+    image: resource-registry-management
+    container_name: resource-registry-management
+    ports:
+      - ${RRM_EXPOSED_SERVER_PORT}:${RRM_SERVER_PORT}
+    environment:
+      - SERVER_PORT=${RRM_SERVER_PORT}
+      - SPRING_DATA_MONGODB_DATABASE=${RRM_SPRING_DATA_MONGODB_DATABASE}
+      - SPRING_DATA_MONGODB_HOST=${RRM_SPRING_DATA_MONGODB_HOST}
+    depends_on:
+      - resource-registry-db
+    volumes:
+    - ${PWD}/log:/log
+
+volumes:
+  resource_registry_db:
