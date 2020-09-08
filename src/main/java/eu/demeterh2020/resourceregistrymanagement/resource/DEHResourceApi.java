@@ -44,9 +44,6 @@ public class DEHResourceApi {
         // Store DEH resource in DB
         DEHResource savedResource = dehResourceService.save(dehResource);
 
-        // Create audit data for stored DEH Resource
-        auditService.save(savedResource);
-
         return savedResource;
     }
 
@@ -91,6 +88,8 @@ public class DEHResourceApi {
         Optional<DEHResource> dehResource = dehResourceService.findOneByUid(uid);
 
         if (dehResource.isPresent()) { // resource exist in DB
+            // Store history consumption
+            auditService.updateHistoryConsumptionByUid(uid);
             // Covert fethed resoruce to DTO object
             return convertToDto(dehResource.get());
         }
@@ -121,7 +120,9 @@ public class DEHResourceApi {
                                     @RequestParam(name = "owner", required = false) String owner,
                                     @RequestParam(name = "rating", required = false) Double rating,
                                     @RequestParam(name = "url", required = false) String url,
-                                    @RequestParam(name = "accessibility", required = false) int accessibility,
+                                    @RequestParam(name = "uid", required = false) String uid,
+
+//                                    @RequestParam(name = "accessibility", required = false) int accessibility,
                                     //TODO Finish  after holiday binding for advanced search for next params
 //                                    @RequestParam(name = "category", required = false) String category,
 //                                    @RequestParam(name = "tags", required = false) String tags,
@@ -145,20 +146,6 @@ public class DEHResourceApi {
         return null;
     }
 
-    @GetMapping(value = "{uid}/download")
-    public void download(@PathVariable String uid) {
-
-        Optional<DEHResource> dehResource = dehResourceService.findOneByUid(uid);
-
-        if (dehResource.isPresent()) {
-            //TODO implement download steps
-            auditService.updateHistoryConsumptionByUid(uid);
-
-        } else {
-            log.error("Resource with uid:" + uid + " not found");
-            throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
-        }
-    }
 
     /**
      * Private method for converting DEHResource to DTO object which adds History Consumption form audit data

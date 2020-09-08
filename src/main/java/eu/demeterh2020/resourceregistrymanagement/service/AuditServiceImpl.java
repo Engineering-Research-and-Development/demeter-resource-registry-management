@@ -28,19 +28,9 @@ public class AuditServiceImpl implements AuditService {
      */
     @Override
     @Loggable
-    public Audit save(DEHResource dehResource) {
+    public Audit save(Audit audit) {
 
-        // Inner class for setting first version and Timestamp for it
-        Map<String, LocalDateTime> versions = new HashMap<String, LocalDateTime>() {
-            {
-                put(dehResource.getVersion(), dehResource.getCreateAt());
-            }
-        };
-
-        Audit newAuditResource = new Audit(dehResource.getUid(), dehResource.getCreateAt(), dehResource.getCreateAt(),
-                versions, new ArrayList<>(), 0D);
-
-        return auditRepository.save(newAuditResource);
+        return auditRepository.save(audit);
     }
 
     /**

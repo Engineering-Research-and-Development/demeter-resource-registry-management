@@ -3,6 +3,7 @@ package eu.demeterh2020.resourceregistrymanagement.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.mysema.commons.lang.Assert;
 import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.DEHResource;
 import eu.demeterh2020.resourceregistrymanagement.logging.Loggable;
@@ -34,11 +35,13 @@ public class DEHResourceServiceImpl implements DEHResourceService {
     @Loggable
     public DEHResource save(DEHResource dehResource) {
 
-        // Check if deh resource is compatible
+        Assert.notNull(dehResource, "DEHResource must not be null!");
+
+        // Check if  DEHresource is compatible
         if (compatibilityChecker.checkCompatibility(dehResource) == true) {
-            // Set creating time of DEH Resource
+            // Set creating time of DEHResource
             dehResource.setCreateAt(LocalDateTime.now());
-            // Store DEH Resource in DB
+            // Store DEHResource in DB
             return dehRepository.save(dehResource);
         }
 
@@ -51,7 +54,11 @@ public class DEHResourceServiceImpl implements DEHResourceService {
     @Override
     @Loggable
     public DEHResource update(String uid, String data) throws IOException {
-        // Get DEH Resource from DB by UID
+
+        Assert.hasText(uid, "DEHResource uid must not be null!");
+        Assert.notNull(data, "DEHResource update data must not be null!");
+
+        // Get DEHResource from DB by uid
         DEHResource dehResource = dehRepository.findByUid(uid).orElse(null);
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -69,6 +76,9 @@ public class DEHResourceServiceImpl implements DEHResourceService {
     @Override
     @Loggable
     public void deleteByUid(String uid) {
+
+        Assert.hasText(uid, "DEHResource uid must not be null!");
+
         dehRepository.deleteById(uid);
     }
 
@@ -79,6 +89,8 @@ public class DEHResourceServiceImpl implements DEHResourceService {
     @Loggable
     public Optional<DEHResource> findOneByUid(String uid) {
 
+        Assert.hasText(uid, "DEHResource uid must not be null!");
+
         Optional<DEHResource> dehResource = dehRepository.findByUid(uid);
 
         return dehResource;
@@ -86,6 +98,9 @@ public class DEHResourceServiceImpl implements DEHResourceService {
 
     @Override
     public boolean existByUid(String uid) {
+
+        Assert.hasText(uid, "DEHResource uid must not be null!");
+
         return dehRepository.existsByUid(uid);
     }
 
@@ -96,6 +111,7 @@ public class DEHResourceServiceImpl implements DEHResourceService {
     @Loggable
     public Page<DEHResource> findAll(Pageable pageable) {
 
+
         return dehRepository.findAll(pageable);
     }
 
@@ -105,6 +121,8 @@ public class DEHResourceServiceImpl implements DEHResourceService {
     @Override
     @Loggable
     public Page<DEHResource> findAllByQuery(Predicate predicate, Pageable pageable) {
+
+        Assert.notNull(pageable, "Paging criteria must not be null!");
 
         return dehRepository.findAll(predicate, pageable);
     }

@@ -2,6 +2,7 @@ package eu.demeterh2020.resourceregistrymanagement.configuration;
 
 import eu.demeterh2020.resourceregistrymanagement.filter.LoggingFilter;
 import eu.demeterh2020.resourceregistrymanagement.logging.LoggingInterceptor;
+import eu.demeterh2020.resourceregistrymanagement.util.listener.DEHResourceMongoEventListener;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -40,4 +41,9 @@ public class ApplicationConfiguration {
         return new ModelMapper();
     }
 
+
+    @Bean
+    public DEHResourceMongoEventListener dehResourceMongoEventListenerMongoEventListener() {
+        return new DEHResourceMongoEventListener();
+    }
 }

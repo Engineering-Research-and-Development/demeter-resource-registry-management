@@ -15,10 +15,10 @@ public interface AuditService {
     /**
      * Method for storing a new Audit object for stored DEH Resource in DB
      *
-     * @param dehResource - DEH resource auditing
+     * @param audit - Audit data for DEH resource
      * @return stored audit object for stored DEH Resource
      */
-    Audit save(DEHResource dehResource);
+    Audit save(Audit audit);
 
     /**
      * Method for updating Audit data for modified DEH Resource in DB
