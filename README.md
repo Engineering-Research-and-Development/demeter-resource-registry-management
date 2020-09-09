@@ -78,7 +78,7 @@ After containers are up and running, you can use Resource Registry Management th
 
 ## Endpoints
 
-Project supports Swagger, so all endpoints after starting an application are available for testing on `http://localhost:17100/swagger-ui.html` 
+Project supports Swagger, so all endpoints after starting an application are available for testing on `http://localhost:9091/swagger-ui.html` 
 
 **List of endpoints**
 
