@@ -117,8 +117,8 @@ public class DEHResourceApi {
                                     @RequestParam(name = "owner", required = false) String owner,
                                     @RequestParam(name = "rating", required = false) Double rating,
                                     @RequestParam(name = "url", required = false) String url,
-                                    @RequestParam(name = "accessibility", required = false) int accessibility,
-                                    @RequestParam(name = "maturityLevel", required = false) int maturityLevel,
+                                    @RequestParam(name = "accessibility", required = false) Integer accessibility,
+                                    @RequestParam(name = "maturityLevel", required = false) Integer maturityLevel,
                                     //TODO Finish  after holiday binding for advanced search for next params
 //                                    @RequestParam(name = "category", required = false) String category,
 //                                    @RequestParam(name = "tags", required = false) String tags,
