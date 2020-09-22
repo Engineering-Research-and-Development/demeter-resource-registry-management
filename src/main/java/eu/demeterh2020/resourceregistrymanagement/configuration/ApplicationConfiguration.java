@@ -2,8 +2,12 @@ package eu.demeterh2020.resourceregistrymanagement.configuration;
 
 import eu.demeterh2020.resourceregistrymanagement.filter.LoggingFilter;
 import eu.demeterh2020.resourceregistrymanagement.logging.LoggingInterceptor;
-import eu.demeterh2020.resourceregistrymanagement.util.listener.DEHResourceMongoEventListener;
+import eu.demeterh2020.resourceregistrymanagement.util.listener.DehResourceMongoEventListener;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,7 +47,14 @@ public class ApplicationConfiguration {
 
 
     @Bean
-    public DEHResourceMongoEventListener dehResourceMongoEventListenerMongoEventListener() {
-        return new DEHResourceMongoEventListener();
+    public DehResourceMongoEventListener dehResourceMongoEventListenerMongoEventListener() {
+        return new DehResourceMongoEventListener();
+    }
+
+    @Bean
+    public OpenAPI customOpenAPI(@Value("${springdoc.version}") String appVersion) {
+        return new OpenAPI()
+                .components(new Components())
+                .info(new Info().title("Resource Registry Management API").version(appVersion));
     }
 }

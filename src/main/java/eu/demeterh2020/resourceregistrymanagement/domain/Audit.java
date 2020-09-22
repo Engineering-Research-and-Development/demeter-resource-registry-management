@@ -1,6 +1,5 @@
 package eu.demeterh2020.resourceregistrymanagement.domain;
 
-import io.swagger.annotations.ApiModel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,7 +14,6 @@ import java.util.Map;
 
 @Data
 @Document(collection = "resources_audit")
-@ApiModel
 @NoArgsConstructor
 @AllArgsConstructor
 public class Audit {
