@@ -1,6 +1,5 @@
 package eu.demeterh2020.resourceregistrymanagement.domain;
 
-import io.swagger.annotations.ApiModel;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
@@ -14,8 +13,7 @@ import java.util.List;
 
 @Data
 @Document(collection = "deh_resource")
-@ApiModel
-public class DEHResource {
+public class DehResource {
 
     @Id
     private String uid;

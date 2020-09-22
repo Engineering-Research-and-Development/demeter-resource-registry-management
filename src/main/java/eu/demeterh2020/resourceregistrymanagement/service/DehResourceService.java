@@ -2,7 +2,7 @@ package eu.demeterh2020.resourceregistrymanagement.service;
 
 
 import com.querydsl.core.types.Predicate;
-import eu.demeterh2020.resourceregistrymanagement.domain.DEHResource;
+import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 
-public interface DEHResourceService {
+public interface DehResourceService {
 
     /**
      * Method for storing a new DEH Resource in DB
@@ -18,7 +18,7 @@ public interface DEHResourceService {
      * @param dehResource - DEH resource for storing
      * @return stored DEH Resource
      */
-    DEHResource save(DEHResource dehResource);
+    DehResource save(DehResource dehResource);
 
     /**
      * Method for updating existing DEH Resource in DB
@@ -27,7 +27,7 @@ public interface DEHResourceService {
      * @param data - String with modified fields in DEH Resource
      * @return updated DEH resource
      */
-    DEHResource update(String uid, String data) throws IOException;
+    DehResource update(String uid, String data) throws IOException;
 
 
     /**
@@ -43,7 +43,7 @@ public interface DEHResourceService {
      * @param uid - DEH resource UID
      * @return Optional DEH Resource
      */
-    Optional<DEHResource> findOneByUid(String uid);
+    Optional<DehResource> findOneByUid(String uid);
 
     /**
      * Method for checking if DEH Resources with UID exists in DB
@@ -59,7 +59,7 @@ public interface DEHResourceService {
      * @param pageable - object with defined page, size and sort
      * @return page with all DEH Resources in DB
      */
-    Page<DEHResource> findAll(Pageable pageable);
+    Page<DehResource> findAll(Pageable pageable);
 
     /**
      * Method for getting all DEH Resources which corresponds to specific criteria/filter from  from DB
@@ -68,5 +68,5 @@ public interface DEHResourceService {
      * @param pageable  - object with defined page, size and sort
      * @return page with all DEH Resources in DB
      */
-    Page<DEHResource> findAllByQuery(Predicate predicate, Pageable pageable);
+    Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable);
 }

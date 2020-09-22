@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.mysema.commons.lang.Assert;
 import com.querydsl.core.types.Predicate;
-import eu.demeterh2020.resourceregistrymanagement.domain.DEHResource;
+import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import eu.demeterh2020.resourceregistrymanagement.logging.Loggable;
-import eu.demeterh2020.resourceregistrymanagement.repository.DEHRepository;
+import eu.demeterh2020.resourceregistrymanagement.repository.DehRepository;
 import eu.demeterh2020.resourceregistrymanagement.util.CompatibilityChecker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -20,10 +20,10 @@ import java.util.Optional;
 
 
 @Service
-public class DEHResourceServiceImpl implements DEHResourceService {
+public class DehResourceServiceImpl implements DehResourceService {
 
     @Autowired
-    private DEHRepository dehRepository;
+    private DehRepository dehRepository;
 
     @Autowired
     private CompatibilityChecker compatibilityChecker;
@@ -33,7 +33,7 @@ public class DEHResourceServiceImpl implements DEHResourceService {
      */
     @Override
     @Loggable
-    public DEHResource save(DEHResource dehResource) {
+    public DehResource save(DehResource dehResource) {
 
         Assert.notNull(dehResource, "DEHResource must not be null!");
 
@@ -53,18 +53,18 @@ public class DEHResourceServiceImpl implements DEHResourceService {
      */
     @Override
     @Loggable
-    public DEHResource update(String uid, String data) throws IOException {
+    public DehResource update(String uid, String data) throws IOException {
 
         Assert.hasText(uid, "DEHResource uid must not be null!");
         Assert.notNull(data, "DEHResource update data must not be null!");
 
         // Get DEHResource from DB by uid
-        DEHResource dehResource = dehRepository.findByUid(uid).orElse(null);
+        DehResource dehResource = dehRepository.findByUid(uid).orElse(null);
 
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new Jdk8Module());
         ObjectReader objectReader = objectMapper.readerForUpdating(dehResource);
-        DEHResource updatedDehResource = objectReader.readValue(data, DEHResource.class);
+        DehResource updatedDehResource = objectReader.readValue(data, DehResource.class);
         updatedDehResource.setLastUpdate(LocalDateTime.now());
 
         return dehRepository.save(updatedDehResource);
@@ -87,11 +87,11 @@ public class DEHResourceServiceImpl implements DEHResourceService {
      */
     @Override
     @Loggable
-    public Optional<DEHResource> findOneByUid(String uid) {
+    public Optional<DehResource> findOneByUid(String uid) {
 
         Assert.hasText(uid, "DEHResource uid must not be null!");
 
-        Optional<DEHResource> dehResource = dehRepository.findByUid(uid);
+        Optional<DehResource> dehResource = dehRepository.findByUid(uid);
 
         return dehResource;
     }
@@ -109,8 +109,7 @@ public class DEHResourceServiceImpl implements DEHResourceService {
      */
     @Override
     @Loggable
-    public Page<DEHResource> findAll(Pageable pageable) {
-
+    public Page<DehResource> findAll(Pageable pageable) {
 
         return dehRepository.findAll(pageable);
     }
@@ -120,7 +119,7 @@ public class DEHResourceServiceImpl implements DEHResourceService {
      */
     @Override
     @Loggable
-    public Page<DEHResource> findAllByQuery(Predicate predicate, Pageable pageable) {
+    public Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable) {
 
         Assert.notNull(pageable, "Paging criteria must not be null!");
 

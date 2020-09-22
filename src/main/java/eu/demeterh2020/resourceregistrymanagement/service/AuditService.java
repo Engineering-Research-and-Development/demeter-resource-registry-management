@@ -1,7 +1,7 @@
 package eu.demeterh2020.resourceregistrymanagement.service;
 
 import eu.demeterh2020.resourceregistrymanagement.domain.Audit;
-import eu.demeterh2020.resourceregistrymanagement.domain.DEHResource;
+import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -26,7 +26,7 @@ public interface AuditService {
      * @param data - String with modified fields in DEH Resource
      * @return updated audit object for stored DEH Resource
      */
-    Audit update(DEHResource dehResource, String data) throws IOException;
+    Audit update(DehResource dehResource, String data) throws IOException;
 
     /**
      * Method for updating History Consumption for DEH Resource in DB

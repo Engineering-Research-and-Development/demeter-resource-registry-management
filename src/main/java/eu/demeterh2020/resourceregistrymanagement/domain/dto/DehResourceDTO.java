@@ -15,7 +15,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class DEHResourceDTO {
+public class DehResourceDTO {
 
     @Id
     private String uid;
@@ -33,7 +33,7 @@ public class DEHResourceDTO {
     @NotNull(message = "Resource owner can't be null")
     private String owner;
     private List<String> tags = new ArrayList<>();
-    private byte[] Attachment;
+    private byte[] attachment;
     private Double rating;
     private List<GeoJsonPoint> localisation = new ArrayList<>();
     private int accessibility;

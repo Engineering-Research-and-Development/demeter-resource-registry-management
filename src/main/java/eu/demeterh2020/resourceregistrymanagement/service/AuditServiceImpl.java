@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import eu.demeterh2020.resourceregistrymanagement.domain.Audit;
-import eu.demeterh2020.resourceregistrymanagement.domain.DEHResource;
+import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceNotFoundException;
 import eu.demeterh2020.resourceregistrymanagement.logging.Loggable;
 import eu.demeterh2020.resourceregistrymanagement.repository.AuditRepository;
@@ -38,7 +38,7 @@ public class AuditServiceImpl implements AuditService {
      */
     @Override
     @Loggable
-    public Audit update(DEHResource dehResource, String data) throws IOException {
+    public Audit update(DehResource dehResource, String data) throws IOException {
         Optional<Audit> audit = auditRepository.findByUid(dehResource.getUid());
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new Jdk8Module());

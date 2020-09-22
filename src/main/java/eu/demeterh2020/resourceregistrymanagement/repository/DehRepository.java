@@ -2,8 +2,8 @@ package eu.demeterh2020.resourceregistrymanagement.repository;
 
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.StringPath;
-import eu.demeterh2020.resourceregistrymanagement.domain.DEHResource;
-import eu.demeterh2020.resourceregistrymanagement.domain.QDEHResource;
+import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
+import eu.demeterh2020.resourceregistrymanagement.domain.QDehResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -15,13 +15,13 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface DEHRepository extends MongoRepository<DEHResource, String>, QuerydslPredicateExecutor<DEHResource>, QuerydslBinderCustomizer<QDEHResource> {
+public interface DehRepository extends MongoRepository<DehResource, String>, QuerydslPredicateExecutor<DehResource>, QuerydslBinderCustomizer<QDehResource> {
 
-    Optional<DEHResource> findByUid(String uid);
+    Optional<DehResource> findByUid(String uid);
 
-    Page<DEHResource> findAll(Pageable page);
+    Page<DehResource> findAll(Pageable page);
 
-    Page<DEHResource> findAll(Predicate predicate, Pageable pageable);
+    Page<DehResource> findAll(Predicate predicate, Pageable pageable);
 
     void deleteByUid(String uid);
 
@@ -29,7 +29,7 @@ public interface DEHRepository extends MongoRepository<DEHResource, String>, Que
 
 
     @Override
-    default void customize(QuerydslBindings bindings, QDEHResource root) {
+    default void customize(QuerydslBindings bindings, QDehResource root) {
 
         bindings.excluding(root.uid);
         bindings.bind(String.class).first(
