@@ -172,6 +172,7 @@ public class DehResourceApi {
                                     @RequestParam(name = "url", required = false) String url,
                                     @RequestParam(name = "accessibility", required = false) Integer accessibility,
                                     @RequestParam(name = "maturityLevel", required = false) Integer maturityLevel,
+                                    @RequestParam(name = "localisationDistance", required = false) String localisationDistance,
                                     //TODO Finish  after holiday binding for advanced search for next params
 //                                    @RequestParam(name = "category", required = false) String category,
 //                                    @RequestParam(name = "tags", required = false) String tags,
@@ -185,8 +186,15 @@ public class DehResourceApi {
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sortingOrder, sortBy);
 
+        if (localisationDistance!=null){
+
+            return dehResourceService.findAllByQuery(predicate, pageable, localisationDistance);
+        }
+
         return dehResourceService.findAllByQuery(predicate, pageable);
     }
+
+
 
     @Operation(summary = "Rate DEH Resource")
     @ApiResponses(value = {
@@ -206,7 +214,6 @@ public class DehResourceApi {
         return null;
     }
 
-
     /**
      * Private method for converting DEHResource to DTO object which adds History Consumption form audit data
      */
@@ -225,4 +232,3 @@ public class DehResourceApi {
         return dehResource;
     }
 }
-

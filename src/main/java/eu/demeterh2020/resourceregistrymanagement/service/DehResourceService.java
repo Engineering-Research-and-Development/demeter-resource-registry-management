@@ -69,4 +69,15 @@ public interface DehResourceService {
      * @return page with all DEH Resources in DB
      */
     Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable);
+
+    /**
+     * Method for getting all DEH Resources which corresponds to specific criteria/filter from  from DB, and calculates
+     *
+     * @param predicate - object with criteria
+     * @param pageable  - object with defined page, size and sort
+     * @param localisationDistance string of localisation request given in format "latitude,longitude,distance"
+     * @return page with all DEH Resources in DB
+     */
+    Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable, String localisationDistance);
+
 }
