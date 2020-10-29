@@ -12,6 +12,8 @@ import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
 import org.springframework.data.querydsl.binding.QuerydslBindings;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.Iterator;
 import java.util.Optional;
 
 @Repository
@@ -32,8 +34,60 @@ public interface DehRepository extends MongoRepository<DehResource, String>, Que
     default void customize(QuerydslBindings bindings, QDehResource root) {
 
         bindings.excluding(root.uid);
+        bindings.excluding(root.attachment);
+        bindings.excluding(root.localisation);
+        bindings.excluding(root.billingInformation);
+
         bindings.bind(String.class).first(
                 (StringPath path, String value) -> path.containsIgnoreCase(value));
         bindings.bind(root.category).first((path, value) -> path.any().containsIgnoreCase(value.iterator().next()));
+        bindings.bind(root.tags).first((path, value) -> path.any().containsIgnoreCase(value.iterator().next()));
+        bindings.bind(root.dependencies).first((path, value) -> path.any().containsIgnoreCase(value.iterator().next()));
+        bindings.bind(root.accessControlPolicies).first((path, value) -> path.any().containsIgnoreCase(value.iterator().next()));
+
+        bindings.bind(root.rating).all((path, value) -> {
+            Iterator<? extends Double> it = value.iterator();
+            Double from = it.next();
+            if (value.size() >= 2) {
+                Double to = it.next();
+                return Optional.of(path.between(from, to));
+            } else {
+                return Optional.of(path.goe(from));
+            }
+        });
+
+        bindings.bind(root.maturityLevel).all((path, value) -> {
+            Iterator<? extends Integer> it = value.iterator();
+            Integer from = it.next();
+            if (value.size() >= 2) {
+                Integer to = it.next();
+                return Optional.of(path.between(from, to));
+            } else {
+                return Optional.of(path.goe(from));
+            }
+        });
+
+        bindings.bind(root.createAt).all((path, value) -> {
+            Iterator<? extends LocalDateTime> it = value.iterator();
+            LocalDateTime from = it.next();
+            if (value.size() >= 2) {
+                LocalDateTime to = it.next();
+                return Optional.of(path.between(from, to));
+            } else {
+                return Optional.of(path.goe(from));
+            }
+        });
+
+        bindings.bind(root.lastUpdate).all((path, value) -> {
+            Iterator<? extends LocalDateTime> it = value.iterator();
+            LocalDateTime from = it.next();
+            if (value.size() >= 2) {
+                LocalDateTime to = it.next();
+                return Optional.of(path.between(from, to));
+            } else {
+                return Optional.of(path.goe(from));
+            }
+        });
+
     }
 }
