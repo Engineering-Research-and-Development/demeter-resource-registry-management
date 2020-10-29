@@ -12,4 +12,6 @@ public interface AuditRepository extends MongoRepository<Audit, String> {
     Optional<Audit> findByUid(String uid);
 
     void deleteByUid(String resourceUid);
+
+    boolean existsByUid(String uid);
 }

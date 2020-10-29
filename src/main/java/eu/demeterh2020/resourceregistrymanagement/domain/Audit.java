@@ -24,6 +24,5 @@ public class Audit {
     private LocalDateTime lastUpdate;
     private Map<String, LocalDateTime> versions = new HashMap<>();
     private List<LocalDateTime> consumption = new ArrayList<>();
-    private Double rating;
-
+    private ArrayList<Double> rating;
 }
