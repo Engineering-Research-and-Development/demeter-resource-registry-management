@@ -3,68 +3,127 @@
 
 <configuration>
 
-	<include resource="org/springframework/boot/logging/logback/base.xml"/>
-	
-	<!-- <springProperty scope="context" name="springAppName" source="spring.application.name"/> -->
-	<property name="springAppName" value="resource-registry-management" />
-	
-	<property name="maxFileSize" value="100MB" />
-	<property name="maxHistory" value="2" />
-	<property name="folder" value="logs/${springAppName}" />
-	<property name="baseFileName" value="resourceregistrymanagement" />
-	
-	<property name="FILE_LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%15.15t] %-40.40logger{39} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>		
-		
-	<appender name="FILE_LOGGING_FILTER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${folder}/${baseFileName}-logging_filter.log</file>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${folder}/${baseFileName}-logging_filter-%d{yyyy-MM-dd}_%i.log</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy	class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>${maxFileSize}</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<maxHistory>${maxHistory}</maxHistory>
-		</rollingPolicy>
-		<encoder>
-			<pattern>${FILE_LOG_PATTERN}</pattern>
-		</encoder>
-	</appender>
-	
-	<appender name="FILE_BASE_RESOURCES" class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${folder}/${baseFileName}-base_resource.log</file>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${folder}/${baseFileName}-base_resource-%d{yyyy-MM-dd}_%i.log</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy	class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>${maxFileSize}</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<maxHistory>${maxHistory}</maxHistory>
-		</rollingPolicy>
-		<encoder>
-			<pattern>${FILE_LOG_PATTERN}</pattern>
-		</encoder>
-	</appender>
-	
-	<appender name="FILE_SECURITY" class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>${folder}/${baseFileName}-security.log</file>
-		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-			<fileNamePattern>${folder}/${baseFileName}-security-%d{yyyy-MM-dd}_%i.log</fileNamePattern>
-			<timeBasedFileNamingAndTriggeringPolicy	class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-				<maxFileSize>${maxFileSize}</maxFileSize>
-			</timeBasedFileNamingAndTriggeringPolicy>
-			<maxHistory>${maxHistory}</maxHistory>
-		</rollingPolicy>
-		<encoder>
-			<pattern>${FILE_LOG_PATTERN}</pattern>
-		</encoder>
-	</appender>	
-		
-	<logger name="eu.demeterh2020.resourceregistrymanagement.filter.LoggingFilter" level="ALL" additivity="true" >
-		<appender-ref ref="FILE_LOGGING_FILTER" />
-	</logger>
-	
-	<logger name="eu.demeterh2020.resourceregistrymanagement.security" level="ALL" additivity="true" >
-		<appender-ref ref="FILE_SECURITY" />
-	</logger>
-	
-	<root level="INFO"></root>	
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+
+    <!-- <springProperty scope="context" name="springAppName" source="spring.application.name"/> -->
+    <property name="springAppName" value="resource-registry-management"/>
+
+    <property name="maxFileSize" value="100MB"/>
+    <property name="maxHistory" value="2"/>
+    <property name="folder" value="logs/${springAppName}"/>
+    <property name="baseFileName" value="resourceregistrymanagement"/>
+
+    <property name="FILE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%15.15t] %-40.40logger{39} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+
+    <appender name="FILE_LOGGING_FILTER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${folder}/${baseFileName}-logging_filter.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${folder}/${baseFileName}-logging_filter-%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>${maxFileSize}</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>${maxHistory}</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_RESOURCES_DEHRESOURCE_API" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${folder}/${baseFileName}-resources-dehresource_api.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${folder}/${baseFileName}-resources-dehresource_api-%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>${maxFileSize}</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>${maxHistory}</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_RESOURCES_AUDIT_API" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${folder}/${baseFileName}-resources-audit_api.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${folder}/${baseFileName}-resources-audit_api-%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>${maxFileSize}</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>${maxHistory}</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+    <appender name="FILE_SECURITY" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${folder}/${baseFileName}-security.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${folder}/${baseFileName}-security-%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>${maxFileSize}</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>${maxHistory}</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_SERVICES_DEHRESOURCE_SERVICE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${folder}/${baseFileName}-services_dehresource_service.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${folder}/${baseFileName}-dehresource_service-%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>${maxFileSize}</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>${maxHistory}</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_SERVICES_AUDIT_SERVICE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${folder}/${baseFileName}-services_audit_service.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${folder}/${baseFileName}-audit_service-%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>${maxFileSize}</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>${maxHistory}</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="eu.demeterh2020.resourceregistrymanagement.filter.LoggingFilter" level="ALL" additivity="true">
+        <appender-ref ref="FILE_LOGGING_FILTER"/>
+    </logger>
+
+    <logger name="eu.demeterh2020.resourceregistrymanagement.resource.DehResourceApi" level="ALL" additivity="true">
+        <appender-ref ref="FILE_RESOURCES_DEHRESOURCE_API"/>
+    </logger>
+
+    <logger name="eu.demeterh2020.resourceregistrymanagement.resource.AuditApi" level="ALL" additivity="true">
+        <appender-ref ref="FILE_RESOURCES_AUDIT_API"/>
+    </logger>
+
+    <logger name="eu.demeterh2020.resourceregistrymanagement.security" level="ALL" additivity="true">
+        <appender-ref ref="FILE_SECURITY"/>
+    </logger>
+
+    <logger name="eu.demeterh2020.resourceregistrymanagement.service.DehResourceServiceImpl" level="ALL"
+            additivity="true">
+        <appender-ref ref="FILE_SERVICES_DEHRESOURCE_SERVICE"/>
+    </logger>
+
+    <logger name="eu.demeterh2020.resourceregistrymanagement.service.AuditServiceImpl" level="ALL" additivity="true">
+        <appender-ref ref="FILE_SERVICES_AUDIT_SERVICE"/>
+    </logger>
+
+    <root level="INFO"></root>
 
 </configuration>
