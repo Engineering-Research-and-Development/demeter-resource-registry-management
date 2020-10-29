@@ -7,13 +7,17 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import javax.validation.constraints.NotNull;
+import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Document(collection = "deh_resource")
-public class DehResource {
+public class DehResource implements Serializable {
 
     @Id
     private String uid;
@@ -31,7 +35,7 @@ public class DehResource {
     @NotNull(message = "Resource owner can't be null")
     private String owner;
     private List<String> tags = new ArrayList<>();
-    private byte[] Attachment;
+    private byte[] attachment;
     private Double rating;
     private List<GeoJsonPoint> localisation = new ArrayList<>();
     private int accessibility;
@@ -43,5 +47,5 @@ public class DehResource {
     private List<String> accessControlPolicies = new ArrayList<>();
     private String url;
     private List<String> billingInformation = new ArrayList<>();
-
+    private Map<LocalDate, Integer> downloadsHistory = new HashMap<>();
 }
