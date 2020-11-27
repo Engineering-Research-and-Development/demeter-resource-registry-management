@@ -37,7 +37,7 @@ public interface DehRepository extends MongoRepository<DehResource, String>, Que
         bindings.excluding(root.attachment);
         bindings.excluding(root.localisation);
         bindings.excluding(root.billingInformation);
-
+        bindings.excluding(root.downloadsHistory);
         bindings.bind(String.class).first(
                 (StringPath path, String value) -> path.containsIgnoreCase(value));
         bindings.bind(root.category).first((path, value) -> path.any().containsIgnoreCase(value.iterator().next()));
