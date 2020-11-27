@@ -271,7 +271,7 @@ public class DehResourceServiceImpl implements DehResourceService {
      * @return distance of two points (given by coordinates) in meters
      */
     private double returnDistanceBetweenCoords(double lat1, double lon1, double lat2, double lon2) {
-        final double R = 6371000; // earth radius in meters
+        final double R = 6371e3; // earth radius in meters
         double phi1 = lat1 * Math.PI / 180;
         double phi2 = lat2 * Math.PI / 180;
         double dPhi = (lat2 - lat1) * Math.PI / 180;
@@ -299,7 +299,7 @@ public class DehResourceServiceImpl implements DehResourceService {
             return false; // if it does not exist then it's not close
         // check all coordinates to find if one of them is within the specified distance
         for (int i = 0; i < resource.getLocalisation().size(); i++) {
-            if (returnDistanceBetweenCoords(latitude, longitude, resource.getLocalisation().get(i).getY(), resource.getLocalisation().get(i).getX()) < distance)
+            if (returnDistanceBetweenCoords(latitude, longitude, resource.getLocalisation().get(i).getX(), resource.getLocalisation().get(i).getY()) < distance)
                 return true; // this coordinate is within distance of (latitude, longitude)
         }
 
