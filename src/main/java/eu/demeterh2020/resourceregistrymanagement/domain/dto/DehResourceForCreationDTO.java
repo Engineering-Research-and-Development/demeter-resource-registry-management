@@ -25,6 +25,7 @@ public class DehResourceForCreationDTO {
     private String status;
     private String version;
     private int maturityLevel;
+    private String owner;
     private List<String> tags = new ArrayList<>();
     private byte[] attachment;
     private List<GeoJsonPoint> localisation = new ArrayList<>();

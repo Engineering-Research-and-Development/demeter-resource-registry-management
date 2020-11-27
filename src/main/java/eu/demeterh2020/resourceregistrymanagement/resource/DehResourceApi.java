@@ -271,6 +271,7 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = @Content)})
     @PostMapping(value = "/{uid}/rate")
+    @CrossOrigin
     public DehResource rateResource(@PathVariable String uid, @RequestBody Double rating) {
 
         log.info("rateResource called.");
