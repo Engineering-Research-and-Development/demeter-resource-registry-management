@@ -11,7 +11,7 @@ services:
       - resource_registry_db:/data/configdb
 
   resource-registry-management:
-    image: resource-registry-management
+    image: demeterengteam/resource-registry-management:develop
     container_name: resource-registry-management
     ports:
       - ${RRM_EXPOSED_SERVER_PORT}:${RRM_SERVER_PORT}
@@ -22,7 +22,7 @@ services:
     depends_on:
       - resource-registry-db
     volumes:
-    - ${PWD}/logs:/logs
+      - ${PWD}/logs:/logs
 
 volumes:
   resource_registry_db:
