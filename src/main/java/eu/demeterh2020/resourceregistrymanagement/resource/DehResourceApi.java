@@ -243,7 +243,7 @@ public class DehResourceApi {
     public Page<DehResource> search(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
                                     @RequestParam(name = "pageSize", required = false, defaultValue = "20") int pageSize,
                                     @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
-                                    @RequestParam(name = "sortingOrder", required = false, defaultValue = "DESC") Sort.Direction sortingOrder,
+                                    @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder,
                                     @RequestParam(name = "localisationDistance", required = false) String localisationDistance,
                                     @QuerydslPredicate(root = DehResource.class) Predicate predicate) {
 
