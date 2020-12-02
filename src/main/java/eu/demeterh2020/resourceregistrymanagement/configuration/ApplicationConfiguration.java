@@ -12,6 +12,11 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
+import org.springframework.data.mongodb.MongoDatabaseFactory;
+import org.springframework.data.mongodb.core.convert.DbRefResolver;
+import org.springframework.data.mongodb.core.convert.DefaultDbRefResolver;
+import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
+import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 
 @Configuration
@@ -56,5 +61,13 @@ public class ApplicationConfiguration {
         return new OpenAPI()
                 .components(new Components())
                 .info(new Info().title("Resource Registry Management API").version(appVersion));
+    }
+
+    @Bean
+    public MappingMongoConverter mongoConverter(MongoDatabaseFactory mongoFactory, MongoMappingContext mongoMappingContext) {
+        DbRefResolver dbRefResolver = new DefaultDbRefResolver(mongoFactory);
+        MappingMongoConverter mongoConverter = new MappingMongoConverter(dbRefResolver, mongoMappingContext);
+        mongoConverter.setMapKeyDotReplacement("-DOT");
+        return mongoConverter;
     }
 }
