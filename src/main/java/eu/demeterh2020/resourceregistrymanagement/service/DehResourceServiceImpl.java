@@ -15,7 +15,6 @@ import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreat
 import eu.demeterh2020.resourceregistrymanagement.logging.Loggable;
 import eu.demeterh2020.resourceregistrymanagement.repository.DehRepository;
 import eu.demeterh2020.resourceregistrymanagement.util.CompatibilityChecker;
-import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -109,9 +108,25 @@ public class DehResourceServiceImpl implements DehResourceService {
         // Get DEHResource from DB by uid
         DehResource targetDehResource = dehRepository.findByUid(uid).orElse(null);
 
-        ModelMapper modelMapper = new ModelMapper();
-        modelMapper.getConfiguration().setSkipNullEnabled(true);
-        modelMapper.map(dehResourceForUpdating, targetDehResource);
+        targetDehResource.setName(dehResourceForUpdating.getName());
+        targetDehResource.setType(dehResourceForUpdating.getType());
+        targetDehResource.setCategory(dehResourceForUpdating.getCategory());
+        targetDehResource.setDescription(dehResourceForUpdating.getDescription());
+        targetDehResource.setEndpoint(dehResourceForUpdating.getEndpoint());
+        targetDehResource.setStatus(dehResourceForUpdating.getStatus());
+        targetDehResource.setVersion(dehResourceForUpdating.getVersion());
+        targetDehResource.setMaturityLevel(dehResourceForUpdating.getMaturityLevel());
+        targetDehResource.setTags(dehResourceForUpdating.getTags());
+        targetDehResource.setLocalisation(dehResourceForUpdating.getLocalisation());
+        targetDehResource.setAccessibility(dehResourceForUpdating.getAccessibility());
+        targetDehResource.setDependencies(dehResourceForUpdating.getDependencies());
+        targetDehResource.setAccessControlPolicies(dehResourceForUpdating.getAccessControlPolicies());
+        targetDehResource.setUrl(dehResourceForUpdating.getUrl());
+
+        //TODO Fix the implementation
+//        ModelMapper modelMapper = new ModelMapper();
+//        modelMapper.getConfiguration().setSkipNullEnabled(true);
+//        modelMapper.map(dehResourceForUpdating, targetDehResource);
 
         return dehRepository.save(targetDehResource);
     }
