@@ -102,3 +102,5 @@ Project supports Swagger, so all endpoints after starting an application are ava
 Project is: _in progress_ 
 
 ## License
+<!--- If you're not sure which open license to use see https://choosealicense.com/--->
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
