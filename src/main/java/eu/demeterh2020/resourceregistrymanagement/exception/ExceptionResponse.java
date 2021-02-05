@@ -15,7 +15,7 @@ public class ExceptionResponse {
     private String message;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy hh:mm:ss")
     private LocalDateTime timestamp;
-    private String uri;
+    private String path;
 
     public ExceptionResponse(HttpStatus httpStatus, String message, LocalDateTime timestamp) {
         this.httpStatus = httpStatus;
