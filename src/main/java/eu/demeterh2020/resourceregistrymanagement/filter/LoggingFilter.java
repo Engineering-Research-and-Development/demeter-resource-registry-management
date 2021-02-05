@@ -40,8 +40,8 @@ public class LoggingFilter extends OncePerRequestFilter {
             }
         }
 
-        String authorization = request.getHeader("Authorization");
+//        String authorization = request.getHeader("Authorization");
 
-        log.info("RequestURI: {} Method: {} ParameterMap: {} Authorization: {}", request.getRequestURI(), request.getMethod(), parameterMap.toString(), authorization);
+        log.info("RequestURI: {} Method: {} ParameterMap: {}", request.getRequestURI(), request.getMethod(), parameterMap.toString());
     }
 }
