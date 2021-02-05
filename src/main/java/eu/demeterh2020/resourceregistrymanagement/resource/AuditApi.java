@@ -26,7 +26,7 @@ public class AuditApi {
     @Autowired
     private AuditService auditService;
 
-    @Operation(summary = "Get audit data for all DEH Resources")
+    @Operation(hidden = true, summary = "Get audit data for all DEH Resources")
     @GetMapping
     public Page<Audit> findAll(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
                                @RequestParam(name = "pageSize", required = false, defaultValue = "20") int pageSize,
@@ -38,7 +38,7 @@ public class AuditApi {
         return auditService.findAll(pageable);
     }
 
-    @Operation(summary = "Get audit data for DEH Resource by uid")
+    @Operation(hidden = true, summary = "Get audit data for DEH Resource by uid")
     @GetMapping(value = "/{uid}")
     public Audit findOneByResourceUid(@PathVariable String uid) {
 
