@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
@@ -59,6 +61,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ExceptionResponse exceptionResponse = new ExceptionResponse(unauthorized, ex.getMessage(), LocalDateTime.now(), request.getRequestURI());
 
         return new ResponseEntity<>(exceptionResponse, unauthorized);
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ExceptionResponse> handleMissingParams(ServletRequestBindingException ex, HttpServletRequest request) {
+
+        HttpStatus badRequest = HttpStatus.BAD_REQUEST;
+
+        ExceptionResponse exceptionResponse = new ExceptionResponse(badRequest, ex.getMessage(), LocalDateTime.now(), request.getRequestURI());
+
+        return new ResponseEntity<>(exceptionResponse, badRequest);
     }
 
     @Override
