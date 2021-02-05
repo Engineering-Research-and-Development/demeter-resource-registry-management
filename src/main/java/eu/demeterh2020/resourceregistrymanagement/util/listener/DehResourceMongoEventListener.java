@@ -27,9 +27,7 @@ public class DehResourceMongoEventListener extends AbstractMongoEventListener<De
         //TODO extract token
         LocalDateTime now = LocalDateTime.now();
         // Set creation date and default rating of a resource if not exists in DB
-        if (dehResourceService.existByUid(event.getSource().getUid())) {
-            event.getSource().setLastUpdate(now);
-        } else {
+        if (!dehResourceService.existByUid(event.getSource().getUid())) {
             event.getSource().setLastUpdate(now);
             event.getSource().setCreateAt(now);
             event.getSource().setRating(0D);
