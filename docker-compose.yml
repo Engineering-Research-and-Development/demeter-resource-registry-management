@@ -11,7 +11,7 @@ services:
       - resource_registry_db:/data/configdb
 
   resource-registry-management:
-    image: demeterengteam/resource-registry-management:latest
+    image: demeterengteam/resource-registry-management:prod
     container_name: resource-registry-management
     ports:
       - ${RRM_EXPOSED_SERVER_PORT}:${RRM_SERVER_PORT}
