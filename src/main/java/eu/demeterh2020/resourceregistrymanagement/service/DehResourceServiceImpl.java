@@ -11,6 +11,7 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import com.mysema.commons.lang.Assert;
 import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
+import eu.demeterh2020.resourceregistrymanagement.domain.QDehResource;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDTO;
 import eu.demeterh2020.resourceregistrymanagement.logging.Loggable;
 import eu.demeterh2020.resourceregistrymanagement.repository.DehRepository;
@@ -27,10 +28,9 @@ import org.springframework.data.mongodb.core.geo.GeoJsonModule;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -122,7 +122,7 @@ public class DehResourceServiceImpl implements DehResourceService {
         targetDehResource.setDependencies(dehResourceForUpdating.getDependencies());
         targetDehResource.setAccessControlPolicies(dehResourceForUpdating.getAccessControlPolicies());
         targetDehResource.setUrl(dehResourceForUpdating.getUrl());
-
+        targetDehResource.setLastUpdate(LocalDateTime.now());
         //TODO Fix the implementation
 //        ModelMapper modelMapper = new ModelMapper();
 //        modelMapper.getConfiguration().setSkipNullEnabled(true);
@@ -172,16 +172,31 @@ public class DehResourceServiceImpl implements DehResourceService {
         return dehRepository.existsByUid(uid);
     }
 
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean existByName(String name) {
+
+        log.info("Checking if DEHResource with name exists:" + name);
+
+        return dehRepository.existsByName(name);
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     @Loggable
-    public Page<DehResource> findAll(Pageable pageable) {
+    public Page<DehResource> findAll(Pageable pageable, String userId) {
 
         log.info("Fetching all DEHResources from DB");
 
-        return dehRepository.findAll(pageable);
+        Set<DehResource> allPublicResources = dehRepository.findAllByAccessibilityAndStatus(0, 1);
+        Set<DehResource> allOwnersResources = dehRepository.findAllByOwner(userId);
+
+        return setPaging(allPublicResources, allOwnersResources, pageable);
     }
 
     /**
@@ -189,14 +204,19 @@ public class DehResourceServiceImpl implements DehResourceService {
      */
     @Override
     @Loggable
-    public Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable) {
+    public Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable, String userId) {
 
         log.info("Fetching all DEHResources from DB with filters");
 
+        Predicate newPredicate = QDehResource.dehResource.status.eq(1).and(QDehResource.dehResource.accessibility.eq(0)).and(predicate);
+        Predicate newPredicate1 = QDehResource.dehResource.owner.eq(userId).and(predicate);
         Assert.notNull(pageable, "Paging criteria must not be null!");
+        Set<DehResource> allPublicResources = dehRepository.findAll(newPredicate, pageable).stream().collect(Collectors.toSet());
+        Set<DehResource> allOwnersResources = dehRepository.findAll(newPredicate1, pageable).stream().collect(Collectors.toSet());
 
-        System.out.println("Predicate class" + predicate.getClass());
-        return dehRepository.findAll(predicate, pageable);
+
+        return setPaging(allPublicResources, allOwnersResources, pageable);
+
     }
 
     /**
@@ -204,13 +224,20 @@ public class DehResourceServiceImpl implements DehResourceService {
      */
     @Override
     @Loggable
-    public Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable, String localisationDistance) {
+    public Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable, String localisationDistance, String userId) {
 
         log.info("Fetching all DEHResources from DB with filters and distance");
 
         List<DehResource> dehResources = new ArrayList<>();
 
-        dehRepository.findAll(predicate, pageable).iterator().forEachRemaining(
+        Predicate newPredicate = QDehResource.dehResource.status.eq(1).and(QDehResource.dehResource.accessibility.eq(0)).and(predicate);
+        Predicate newPredicate1 = QDehResource.dehResource.owner.eq(userId).and(predicate);
+        Assert.notNull(pageable, "Paging criteria must not be null!");
+        Set<DehResource> allPublicResources = dehRepository.findAll(newPredicate, pageable).stream().collect(Collectors.toSet());
+        Set<DehResource> allOwnersResources = dehRepository.findAll(newPredicate1, pageable).stream().collect(Collectors.toSet());
+
+        allPublicResources.addAll(allOwnersResources);
+        allPublicResources.iterator().forEachRemaining(
                 dehResource -> {
                     if (isResourceCloseToCoords(dehResource, localisationDistance)) {
                         dehResources.add(dehResource);
@@ -274,6 +301,7 @@ public class DehResourceServiceImpl implements DehResourceService {
 
         return dehRepository.save(resourceAudit.get());
     }
+
 
     /**
      * Computes the distance of two coordinates in meters
@@ -341,5 +369,18 @@ public class DehResourceServiceImpl implements DehResourceService {
         }
 
         return isResourceCloseToCoords(resource, latitude, longitude, distance);
+    }
+
+    private Page<DehResource> setPaging(Set<DehResource> allPublicResources, Set<DehResource> allOwnerResources, Pageable pageable) {
+
+        allPublicResources.addAll(allOwnerResources);
+
+        List<DehResource> dehResources = new ArrayList<>();
+        dehResources.addAll(allPublicResources);
+
+        Page<DehResource> dehResourcePage = new PageImpl<>(dehResources, PageRequest.of(pageable.getPageNumber()
+                , pageable.getPageSize()), dehResources.size());
+
+        return dehResourcePage;
     }
 }

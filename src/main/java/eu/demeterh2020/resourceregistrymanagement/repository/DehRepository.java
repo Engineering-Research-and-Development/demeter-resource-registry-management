@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.Iterator;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface DehRepository extends MongoRepository<DehResource, String>, QuerydslPredicateExecutor<DehResource>, QuerydslBinderCustomizer<QDehResource> {
@@ -25,10 +26,19 @@ public interface DehRepository extends MongoRepository<DehResource, String>, Que
 
     Page<DehResource> findAll(Predicate predicate, Pageable pageable);
 
+    Set<DehResource> findAllByStatus(int status);
+
+    Set<DehResource> findAllByAccessibility(int accessibility);
+
+    Set<DehResource> findAllByAccessibilityAndStatus(int accessibility, int status);
+
+    Set<DehResource> findAllByOwner(String owner);
+
     void deleteByUid(String uid);
 
     boolean existsByUid(String uid);
 
+    boolean existsByName(String name);
 
     @Override
     default void customize(QuerydslBindings bindings, QDehResource root) {
