@@ -7,6 +7,7 @@ Core DEH (Demeter Enabler Hub) module provides functionalities for the resource 
 ## Table of contents
 * [**Technologies**](#technologies)
 * [**Features**](#features)
+* [**Production**](#production)
 * [**Requirements**](#requirements)
 * [**Setup**](#setup)
 * [**How to use**](#how-to-use)
@@ -14,6 +15,8 @@ Core DEH (Demeter Enabler Hub) module provides functionalities for the resource 
 * [**Troubleshoot**](#troubleshoot)
 * [**Contributors**](#contributors)
 * [**Status**](#status)
+* [**Release**](#release)
+* [**Roadmap**](#roadmap)
 * [**Licence**](#licence)
 
 
@@ -53,6 +56,13 @@ Core DEH (Demeter Enabler Hub) module provides functionalities for the resource 
 * Installed Docker Compose
 
 
+## Production
+
+
+Resource Registry Management Hub is deployed and up an running.
+All information about API is avaibable as Swagger documentation on: [https://deh.h2020-demeter-cloud.eu/swagger](https://deh.h2020-demeter-cloud.eu/swagger) 
+
+
 ## Setup
 
 After pulling the source code, go to root folder and follow the next steps:
@@ -83,10 +93,10 @@ Project supports Swagger, so all endpoints after starting an application are ava
 | **/api/v1/resources**          | **GET**      | Get list of all resources                        |                                      | List of all resources                                   |
 | **/api/v1/resources**          | **POST**     | Save a new resource                              | Resource with attributes             | Saved resources with all details                        |
 | **/api/v1/resources/{uid}**    | **PUT**      | Update whole resource                            | Resource uid, Updated resource       | Updated resource with all details                       |
-| **/api/v1/resources/{uid}**    | **PATCH**    | Partial update of a resource                     | Resource uid, Modified attributes of a resource            | Updated resource with all details |
 | **/api/v1/resources/{uid}**    | **DELETE**   | Delete existing Resource                         | Resource uid                         | Resource deleted                                        |
 | **/api/v1/resources/{uid}**    | **GET**      | Find resource by uid                             | Resource uid                         | Resource with all details                               |
 | **/api/v1/resources/search**   | **GET**      | Advanced searching and filtering resources       | Value of any Resource attribute      | Resources that match the search criteria                |
+| **/api/v1/resources/{uid}/rate**|  **POST**   | Rating DEH Resource                              | Resource uid, Resource rating (1-5)  | Updated resource with all details                       |
 
 
 ## Troubleshoot
@@ -96,10 +106,16 @@ Project supports Swagger, so all endpoints after starting an application are ava
 ## Contributors
 
 * [Marko Stojanovic](https://github.com/marest94) 
-* [Slobodan Paunovic](https://github.com/slobodan82) 
+* [Marco Bernandino Romano](https://github.com/marco-romano-eng) 
+* [Gianluca Isgro'](https://github.com/gianluca-isgro) 
 
-## Status
-Project is: _in progress_ 
+
+## Release
+V1.0
+
+ | :dart: [Roadmap](roadmap.md) |
+| ------------------------------------------ |
+
 
 ## License
 <!--- If you're not sure which open license to use see https://choosealicense.com/--->
