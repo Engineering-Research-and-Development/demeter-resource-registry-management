@@ -26,10 +26,7 @@ import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.geo.GeoJsonModule;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
@@ -41,6 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -297,7 +295,7 @@ public class DehResourceApi {
 
         //TODO change implementation regarding DYMER
         if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getOwner().equals(userId)) {
+            if (dehResource.get().getStatus() == 1 && dehResource.get().getAccessibility() == 0) {
                 log.info("DEH Resource with uid:" + uid + " exist in DB.");
 
                 // Store history consumption
@@ -376,6 +374,7 @@ public class DehResourceApi {
                                     @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
                                     @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder,
                                     @RequestParam(name = "localisationDistance", required = false) String localisationDistance,
+                                    @RequestParam(name = "uid", required = false) String resourceUid,
                                     @QuerydslPredicate(root = DehResource.class) Predicate predicate,
                                     @RequestHeader(value = "user-id") String userId) {
 
@@ -392,6 +391,15 @@ public class DehResourceApi {
             log.info("Filtered search with distance");
 
             return dehResourceService.findAllByQuery(predicate, pageable, localisationDistance, userId);
+        }
+        if (resourceUid != null) {
+            List<DehResource> dehResources = new ArrayList<>();
+            Optional<DehResource> resource = dehResourceService.findOneByUid(resourceUid);
+            if (resource.isPresent()) {
+                dehResources.add(resource.get());
+            }
+            return new PageImpl<>(dehResources, PageRequest.of(pageable.getPageNumber()
+                    , pageable.getPageSize()), 1);
         }
         return dehResourceService.findAllByQuery(predicate, pageable, userId);
     }
