@@ -13,7 +13,7 @@ public class ExceptionResponse {
 
     private HttpStatus httpStatus;
     private String message;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy hh:mm:ss")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime timestamp;
     private String path;
 
