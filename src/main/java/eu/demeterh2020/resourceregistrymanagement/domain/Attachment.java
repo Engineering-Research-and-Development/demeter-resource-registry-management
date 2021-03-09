@@ -14,10 +14,8 @@ public class Attachment {
     private String id;
     private String originalName;
     private String fileName;
-    private String metadata;
     private int chunkSize;
     private Long length;
-    private String md5;
     private Date uploadDate;
     private String contentType;
 

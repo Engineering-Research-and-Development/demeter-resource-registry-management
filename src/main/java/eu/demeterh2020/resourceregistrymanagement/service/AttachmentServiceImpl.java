@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 
@@ -40,7 +42,6 @@ public class AttachmentServiceImpl implements AttachmentService {
             attachment.setOriginalName(file.getFilename());
             attachment.setFileName(file.getFilename());
             attachment.setChunkSize(file.getChunkSize());
-            attachment.setMetadata(file.getMetadata().toString());
             attachment.setLength(file.getLength());
             attachment.setUploadDate(file.getUploadDate());
             attachment.setContentType(file.getMetadata().get("_contentType").toString());
@@ -51,10 +52,17 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
 
     @Override
-    public void deleteAttachment(String id) {
+    public void deleteAttachmentById(String id) {
         Query deleteAttachmentQuery = new Query().addCriteria(Criteria.where("_id").is(id));
 
         gridFsTemplate.delete(deleteAttachmentQuery);
+    }
+
+    @Override
+    public void deleteAttachments(List<Attachment> attachments) {
+        List<Query> queries = new ArrayList<>();
+        attachments.forEach(attachment -> queries.add(new Query().addCriteria(Criteria.where("_id").is(attachment.getId()))));
+        queries.forEach(query -> gridFsTemplate.delete(query));
     }
 
     @Override

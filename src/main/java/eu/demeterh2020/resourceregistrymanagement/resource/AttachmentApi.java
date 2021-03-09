@@ -54,7 +54,7 @@ public class AttachmentApi {
     @DeleteMapping("/delete/{id}")
     public void deleteAttachment(@PathVariable String id) throws IOException {
 
-        attachmentService.deleteAttachment(id);
+        attachmentService.deleteAttachmentById(id);
     }
 
     @Operation(hidden = true)
