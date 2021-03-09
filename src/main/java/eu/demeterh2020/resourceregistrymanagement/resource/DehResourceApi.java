@@ -10,6 +10,7 @@ import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.Attachment;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDTO;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDtoMultipart;
 import eu.demeterh2020.resourceregistrymanagement.exception.BadRequestException;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceAlreadyExists;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceNotFoundException;
@@ -33,6 +34,7 @@ import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,6 +43,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "api/v1/resources", produces = {MediaType.APPLICATION_JSON_VALUE})
@@ -73,7 +76,7 @@ public class DehResourceApi {
                     content = @Content)})
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public DehResource saveDehResource(@Valid @RequestBody DehResourceForCreationDTO dehResourceForCreationDTO,
-                                       @RequestHeader(value = "user-id") String userId) throws IOException {
+                                       @RequestHeader(value = "user-id") String userId) {
 
         if (userId == null) {
             log.error("User id is missing.");
@@ -90,12 +93,6 @@ public class DehResourceApi {
 
         DehResource converted = convertToDehResource(dehResourceForCreationDTO);
         converted.setOwner(userId);
-        // Store DEH resource in DB
-//        if (file != null){
-//            String attachmentId = attachmentService.saveAttachment(file);
-//            Attachment savedAttachment = attachmentService.getAttachment(attachmentId);
-//            converted.setAttachment(savedAttachment);
-//        }
         DehResource savedResource = dehResourceService.save(converted);
 
         log.info("DEH Resource saved with uid:" + savedResource.getUid());
@@ -103,45 +100,68 @@ public class DehResourceApi {
         return savedResource;
     }
 
-    @Operation(hidden = true, summary = "Register new DEH Resource Test Multipart form")
+
+    @Operation(summary = "Register new DEH Resource Test Multipart form")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "DEH Resource registered",
                     content = {@Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DehResourceForCreationDTO.class))}),
+                            schema = @Schema(implementation = DehResource.class))}),
             @ApiResponse(responseCode = "400", description = "Bad request",
                     content = @Content),
             @ApiResponse(responseCode = "401", description = "Unauthorized",
                     content = @Content)})
-    @PostMapping(path = "/testString", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public DehResource saveDehResourceMultipartForm(@RequestPart(value = "name", required = true) String name,
-                                                    @RequestPart(value = "type", required = true) String type,
-                                                    @RequestPart(value = "category", required = false) List<String> category,
-                                                    @RequestPart(value = "description", required = false) String description,
-                                                    @RequestPart(value = "endpoint", required = false) String endpoint,
-                                                    @RequestPart(value = "status", required = true) int status,
-                                                    @RequestPart(value = "version", required = false) String version,
-                                                    @RequestPart(value = "maturityLevel", required = false) int maturityLevel,
-                                                    @RequestPart(value = "owner", required = false) String owner,
-                                                    @RequestPart(value = "tags", required = false) List<String> tags,
-                                                    @RequestPart(value = "attachment", required = false) MultipartFile attachment,
-                                                    @RequestPart(value = "localisation", required = false) List<GeoJsonPoint> localisation,
-                                                    @RequestPart(value = "accessibility", required = false) int accessibility,
-                                                    @RequestPart(value = "dependencies", required = false) List<String> dependencies,
-                                                    @RequestPart(value = "accessControlPolicies", required = false) List<String> accessControlPolicies,
-                                                    @RequestPart(value = "url", required = false) String url) throws IOException {
+    @PostMapping(path = "/multipart", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
+    public DehResource saveDehResourceMultipartForm(@ModelAttribute @Valid DehResourceForCreationDtoMultipart dehResourceDto,
+                                                    BindingResult result, @RequestHeader(value = "user-id") String userId) throws IOException {
 
         log.info("saveDehResource called.");
-        Attachment savedAttachment = null;
-        if (attachment != null) {
-            String attachmentId = attachmentService.saveAttachment(attachment);
-            savedAttachment = attachmentService.getAttachment(attachmentId);
+
+        if (userId == null) {
+            log.error("User id is missing.");
+            throw new BadRequestException("User id is missing");
         }
-//        DehResource converted = convertToDehResource(dehResourceForCreationDTO);
-        DehResourceForCreationDTO dehResourceForCreationDTO = new DehResourceForCreationDTO(name, type, category, description, endpoint, status, version, maturityLevel, owner, tags, savedAttachment, localisation, accessibility, dependencies, accessControlPolicies, url);
-        // Store DEH resource in DB
 
-        DehResource converted = convertToDehResource(dehResourceForCreationDTO);
+        List<String> errors = new ArrayList<>();
 
+        //Check if there are errors in validation
+        if (result.hasErrors()) {
+            errors.add("Please correct next values:");
+            result.getFieldErrors().iterator().forEachRemaining(fieldError -> {
+                if (!fieldError.getCode().equalsIgnoreCase("MAX") || fieldError.getCode().equalsIgnoreCase("MIN")) {
+                    errors.add(fieldError.getField() + " can't be type: " + fieldError.getRejectedValue().getClass().getSimpleName() + checkValueType(fieldError.getField()));
+                }
+                if (fieldError.getCode().equalsIgnoreCase("MAX")) {
+                    errors.add(fieldError.getField() + " can't be: " + fieldError.getRejectedValue() + checkValueType(fieldError.getField().concat("Constraint")));
+                }
+                if (fieldError.getCode().equalsIgnoreCase("MIN")) {
+                    errors.add(fieldError.getField() + " can't be: " + fieldError.getRejectedValue() + checkValueType(fieldError.getField().concat("Constraint")));
+                }
+            });
+            String message = errors.stream().collect(Collectors.joining(" "));
+
+            throw new BadRequestException(message);
+        }
+
+        //Check if resource with same name exists
+        if (dehResourceService.existByName(dehResourceDto.getName())) {
+            throw new ResourceAlreadyExists("Resource with a name " + dehResourceDto.getName() + " already exists");
+        }
+
+        List<Attachment> savedAttachments = new ArrayList<>();
+
+        //Save attachments
+        if (dehResourceDto.getAttachmentFile() != null
+                && !dehResourceDto.getAttachmentFile().iterator().next().getResource().getFilename().equalsIgnoreCase("")) {
+            List<MultipartFile> attachments = dehResourceDto.getAttachmentFile();
+            for (MultipartFile uploadedFile : attachments) {
+                String attachmentId = attachmentService.saveAttachment(uploadedFile);
+                savedAttachments.add(attachmentService.getAttachment(attachmentId));
+            }
+        }
+
+        DehResource converted = convertFromMultipartToDehResource(dehResourceDto);
+        converted.setAttachment(savedAttachments);
+        converted.setOwner(userId);
         DehResource savedResource = dehResourceService.save(converted);
 
         log.info("DEH Resource saved with uid:" + savedResource.getUid());
@@ -149,6 +169,7 @@ public class DehResourceApi {
         return savedResource;
     }
 
+    //TODO finish te deleteing of attachments form db
     @Operation(summary = "Delete existing DEH Resource")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "DEH Resource deleted",
@@ -174,7 +195,7 @@ public class DehResourceApi {
             if (dehResource.get().getOwner().equals(userId)) {
                 log.info("DEH Resource with uid:" + uid + " exist in DB.");
                 dehResourceService.deleteByUid(uid);
-
+                attachmentService.deleteAttachments(dehResource.get().getAttachment());
                 return ResponseEntity.status(HttpStatus.OK).body("Successfully deleted resource with uid: " + uid);
             }
             log.error("Access denied for resource with uid:" + uid + "for user: " + userId);
@@ -240,7 +261,7 @@ public class DehResourceApi {
                     content = @Content)})
     @PutMapping(path = "/{uid}", consumes = {"application/json"})
     public DehResource updateDehResource(@PathVariable(value = "uid") String uid, @Valid @RequestBody DehResourceForCreationDTO dehResourceForUpdating,
-                                         @RequestHeader(value = "user-id") String userId) throws JsonPatchException, JsonProcessingException {
+                                         @RequestHeader(value = "user-id") String userId) {
 
         log.info("updateDehResource called.");
 
@@ -255,6 +276,63 @@ public class DehResourceApi {
                 log.info("DEH Resource with uid:" + uid + " exist in DB.");
                 dehResourceForUpdating.setOwner(userId);
                 DehResource updatedDehResource = dehResourceService.update(uid, dehResourceForUpdating);
+                auditService.update(updatedDehResource);
+
+                log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
+
+                return updatedDehResource;
+            } else {
+                log.error("Access denied for resource with uid:" + uid + "for user: " + userId);
+                throw new UnauthorizedException("Access denied for resource with uid: " + uid);
+            }
+        }
+        log.error("Resource with uid:" + uid + " not found");
+        throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
+    }
+
+    //TODO check with Marco and change the updating of attachment
+    @PutMapping(path = "multipart/{uid}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public DehResource updateDehResourceMultipartForm(@PathVariable(value = "uid") String uid,
+                                                      @ModelAttribute @Valid DehResourceForCreationDtoMultipart dehResourceDto,
+                                                      BindingResult result, @RequestHeader(value = "user-id") String userId) throws IOException {
+
+        log.info("updateDehResourceMultipartForm called.");
+
+        if (userId == null) {
+            log.error("User id is missing.");
+            throw new BadRequestException("User id is missing");
+        }
+
+        Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
+
+        if (dehResource.isPresent()) { // resource exist in DB
+            if (dehResource.get().getOwner().equals(userId)) {
+                log.info("DEH Resource with uid:" + uid + " exist in DB.");
+
+                List<String> errors = new ArrayList<>();
+
+                //Check if there are errors in validation
+                if (result.hasErrors()) {
+                    errors.add("Please correct next values:");
+                    result.getFieldErrors().iterator().forEachRemaining(fieldError -> {
+                        if (!fieldError.getCode().equalsIgnoreCase("MAX") || fieldError.getCode().equalsIgnoreCase("MIN")) {
+                            errors.add(fieldError.getField() + " can't be type: " + fieldError.getRejectedValue().getClass().getSimpleName() + checkValueType(fieldError.getField()));
+                        }
+                        if (fieldError.getCode().equalsIgnoreCase("MAX")) {
+                            errors.add(fieldError.getField() + " can't be: " + fieldError.getRejectedValue() + checkValueType(fieldError.getField().concat("Constraint")));
+                        }
+                        if (fieldError.getCode().equalsIgnoreCase("MIN")) {
+                            errors.add(fieldError.getField() + " can't be: " + fieldError.getRejectedValue() + checkValueType(fieldError.getField().concat("Constraint")));
+                        }
+                    });
+
+                    String message = errors.stream().collect(Collectors.joining(" "));
+
+                    throw new BadRequestException(message);
+                }
+
+                dehResourceDto.setOwner(userId);
+                DehResource updatedDehResource = dehResourceService.updateMultipartForm(uid, dehResourceDto);
                 auditService.update(updatedDehResource);
 
                 log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
@@ -452,7 +530,18 @@ public class DehResourceApi {
         return dehResource;
     }
 
-    private DehResource converToDehResourceTest(String dehResource) throws JsonProcessingException {
+    /**
+     * Private method for converting DEHResourceForCreation to DehResource POJO class
+     */
+    private DehResource convertFromMultipartToDehResource(DehResourceForCreationDtoMultipart dehResourceForCreationDTO) {
+        // Mapping DehResourceForCreationDTO to DehResource
+        GeoJsonPoint location = new GeoJsonPoint(dehResourceForCreationDTO.getLocalisation().getX(), dehResourceForCreationDTO.getLocalisation().getY());
+        DehResource dehResource = modelMapper.map(dehResourceForCreationDTO, DehResource.class);
+        dehResource.getLocalisation().add(location);
+        return dehResource;
+    }
+
+    private DehResource convertToDehResourceTest(String dehResource) throws JsonProcessingException {
 
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
@@ -461,5 +550,33 @@ public class DehResourceApi {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         DehResource modelDTO = objectMapper.readValue(dehResource, DehResource.class);
         return modelDTO;
+    }
+
+    private String checkValueType(String value) {
+        String message = new String();
+        switch (value) {
+            case "status":
+                message = ", correct type is: int.  Available values: 1 - Published, 2 - Not published, 3 - Draft.";
+                break;
+            case "attachmentFile":
+                message = ", correct type is: MultipartFile.";
+                break;
+            case "maturityLevel":
+                message = ", correct type is: int.";
+                break;
+            case "accessibility":
+                message = ", correct type is: int.  Available values: 0 - Public, 1 - Private, 2 - Restricted.";
+                break;
+            case "localisation":
+                message = ", correct type is pair of coordinates (x,y). Example: 12,321321, 14, 512321.";
+                break;
+            case "accessibilityConstraint":
+                message = ". Available values: 0 - Public, 1 - Private, 2 - Restricted.";
+                break;
+            case "statusConstraint":
+                message = ". Available values: 1 - Published, 2 - Not published, 3 - Draft.";
+
+        }
+        return message;
     }
 }

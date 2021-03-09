@@ -10,9 +10,11 @@ import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.mysema.commons.lang.Assert;
 import com.querydsl.core.types.Predicate;
+import eu.demeterh2020.resourceregistrymanagement.domain.Attachment;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import eu.demeterh2020.resourceregistrymanagement.domain.QDehResource;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDTO;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDtoMultipart;
 import eu.demeterh2020.resourceregistrymanagement.logging.Loggable;
 import eu.demeterh2020.resourceregistrymanagement.repository.DehRepository;
 import eu.demeterh2020.resourceregistrymanagement.util.CompatibilityChecker;
@@ -25,8 +27,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.geo.GeoJsonModule;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -46,6 +51,9 @@ public class DehResourceServiceImpl implements DehResourceService {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @Autowired
+    private AttachmentService attachmentService;
 
     /**
      * {@inheritDoc}
@@ -97,7 +105,11 @@ public class DehResourceServiceImpl implements DehResourceService {
         return dehRepository.save(dehResourcePatched);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
+    @Loggable
     public DehResource update(String uid, DehResourceForCreationDTO dehResourceForUpdating) {
 
         Assert.hasText(uid, "DEHResource uid must not be null!");
@@ -118,6 +130,62 @@ public class DehResourceServiceImpl implements DehResourceService {
         targetDehResource.setMaturityLevel(dehResourceForUpdating.getMaturityLevel());
         targetDehResource.setTags(dehResourceForUpdating.getTags());
         targetDehResource.setLocalisation(dehResourceForUpdating.getLocalisation());
+        targetDehResource.setAccessibility(dehResourceForUpdating.getAccessibility());
+        targetDehResource.setDependencies(dehResourceForUpdating.getDependencies());
+        targetDehResource.setAccessControlPolicies(dehResourceForUpdating.getAccessControlPolicies());
+        targetDehResource.setUrl(dehResourceForUpdating.getUrl());
+        targetDehResource.setLastUpdate(LocalDateTime.now());
+        //TODO Fix the implementation
+//        ModelMapper modelMapper = new ModelMapper();
+//        modelMapper.getConfiguration().setSkipNullEnabled(true);
+//        modelMapper.map(dehResourceForUpdating, targetDehResource);
+
+        return dehRepository.save(targetDehResource);
+    }
+
+    //TODO Delete this after testing
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Loggable
+    public DehResource updateMultipartForm(String uid, DehResourceForCreationDtoMultipart dehResourceForUpdating) throws IOException {
+
+        Assert.hasText(uid, "DEHResource uid must not be null!");
+        Assert.notNull(dehResourceForUpdating, "DEHResource update data must not be null!");
+
+        log.info("Update for DEHResource with uid:" + uid);
+
+        // Get DEHResource from DB by uid
+        DehResource targetDehResource = dehRepository.findByUid(uid).orElse(null);
+
+
+
+        //Save attachments
+        if (dehResourceForUpdating.getAttachmentFile() != null
+                && !dehResourceForUpdating.getAttachmentFile().iterator().next().getResource().getFilename().equalsIgnoreCase("") ) {
+            List<Attachment> savedAttachments = new ArrayList<>();
+            List<MultipartFile> attachments = dehResourceForUpdating.getAttachmentFile();
+            for (MultipartFile uploadedFile : attachments) {
+                String attachmentId = attachmentService.saveAttachment(uploadedFile);
+                savedAttachments.add(attachmentService.getAttachment(attachmentId));
+            }
+            targetDehResource.setAttachment(savedAttachments);
+        }
+
+        List<GeoJsonPoint> location = new ArrayList<>();
+        location.add(dehResourceForUpdating.getLocalisation());
+
+        targetDehResource.setName(dehResourceForUpdating.getName());
+        targetDehResource.setType(dehResourceForUpdating.getType());
+        targetDehResource.setCategory(dehResourceForUpdating.getCategory());
+        targetDehResource.setDescription(dehResourceForUpdating.getDescription());
+        targetDehResource.setEndpoint(dehResourceForUpdating.getEndpoint());
+        targetDehResource.setStatus(dehResourceForUpdating.getStatus());
+        targetDehResource.setVersion(dehResourceForUpdating.getVersion());
+        targetDehResource.setMaturityLevel(dehResourceForUpdating.getMaturityLevel());
+        targetDehResource.setTags(dehResourceForUpdating.getTags());
+        targetDehResource.setLocalisation(location);
         targetDehResource.setAccessibility(dehResourceForUpdating.getAccessibility());
         targetDehResource.setDependencies(dehResourceForUpdating.getDependencies());
         targetDehResource.setAccessControlPolicies(dehResourceForUpdating.getAccessControlPolicies());

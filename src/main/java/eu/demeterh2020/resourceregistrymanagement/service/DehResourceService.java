@@ -7,9 +7,11 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDTO;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDtoMultipart;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -123,4 +125,15 @@ public interface DehResourceService {
      * @param resourceUid - UID for consumed DEH resource
      */
     DehResource updateNumberOfDownloads(String resourceUid);
+
+
+    //TODO Delete this after testing
+    /**
+     * Method for updating existing DEH Resource in DB
+     *
+     * @param uid                    - DEH resource uid
+     * @param dehResourceForUpdating - DehResource with modified fields
+     * @return updated DEH resource
+     */
+    DehResource updateMultipartForm(String uid, DehResourceForCreationDtoMultipart dehResourceForUpdating) throws IOException;
 }
