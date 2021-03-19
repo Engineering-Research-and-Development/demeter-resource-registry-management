@@ -50,6 +50,8 @@ public class DehResource implements Serializable {
     @Schema(example = "1234-uidas-123", description = "Resource owner id")
     @NotNull(message = "Resource owner can't be null")
     private String owner;
+    @NotNull(message = "Resource Author can't be null")
+    private Author author;
     @Schema(example = "[\"Applications\"]", description = "Resource tags", defaultValue = "null")
     private List<String> tags = new ArrayList<>();
     @Schema(description = "WILL BE AVAILABLE IN NEXT RELEASE")
