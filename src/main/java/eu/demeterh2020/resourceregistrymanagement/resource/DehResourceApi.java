@@ -15,6 +15,8 @@ import eu.demeterh2020.resourceregistrymanagement.exception.BadRequestException;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceAlreadyExists;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceNotFoundException;
 import eu.demeterh2020.resourceregistrymanagement.exception.UnauthorizedException;
+import eu.demeterh2020.resourceregistrymanagement.security.dto.RrmToken;
+import eu.demeterh2020.resourceregistrymanagement.security.dto.UserInfo;
 import eu.demeterh2020.resourceregistrymanagement.service.AttachmentService;
 import eu.demeterh2020.resourceregistrymanagement.service.AuditService;
 import eu.demeterh2020.resourceregistrymanagement.service.DehResourceService;
@@ -34,6 +36,7 @@ import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -75,24 +78,15 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "401", description = "Unauthorized",
                     content = @Content)})
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public DehResource saveDehResource(@Valid @RequestBody DehResourceForCreationDTO dehResourceForCreationDTO,
-                                       @RequestHeader(value = "user-id") String userId) {
-
-        if (userId == null) {
-            log.error("User id is missing.");
-            throw new BadRequestException("User id is missing");
-        }
-
+    public DehResource saveDehResource(@Valid @RequestBody DehResourceForCreationDTO dehResourceForCreationDTO) {
 
         log.info("saveDehResource called.");
-
 
         if (dehResourceService.existByName(dehResourceForCreationDTO.getName())) {
             throw new ResourceAlreadyExists("Resource with a name " + dehResourceForCreationDTO.getName() + " already exists");
         }
 
         DehResource converted = convertToDehResource(dehResourceForCreationDTO);
-        converted.setOwner(userId);
         DehResource savedResource = dehResourceService.save(converted);
 
         log.info("DEH Resource saved with uid:" + savedResource.getUid());
@@ -112,14 +106,9 @@ public class DehResourceApi {
                     content = @Content)})
     @PostMapping(path = "/multipart", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
     public DehResource saveDehResourceMultipartForm(@ModelAttribute @Valid DehResourceForCreationDtoMultipart dehResourceDto,
-                                                    BindingResult result, @RequestHeader(value = "user-id") String userId) throws IOException {
+                                                    BindingResult result) throws IOException {
 
         log.info("saveDehResource called.");
-
-        if (userId == null) {
-            log.error("User id is missing.");
-            throw new BadRequestException("User id is missing");
-        }
 
         List<String> errors = new ArrayList<>();
 
@@ -161,7 +150,6 @@ public class DehResourceApi {
 
         DehResource converted = convertFromMultipartToDehResource(dehResourceDto);
         converted.setAttachment(savedAttachments);
-        converted.setOwner(userId);
         DehResource savedResource = dehResourceService.save(converted);
 
         log.info("DEH Resource saved with uid:" + savedResource.getUid());
@@ -181,24 +169,20 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = @Content)})
     @DeleteMapping(value = "/{uid}")
-    public ResponseEntity deleteDehResource(@PathVariable("uid") String uid,
-                                            @RequestHeader(value = "user-id") String userId) {
+    public ResponseEntity deleteDehResource(@PathVariable("uid") String uid) {
 
         log.info("deleteDehResource called.");
 
-        if (userId == null) {
-            log.error("User id is missing.");
-            throw new BadRequestException("User id is missing");
-        }
+
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
         if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getOwner().equals(userId)) {
+            if (dehResource.get().getOwner().equals(getAuthenticatedUser().getId())) {
                 log.info("DEH Resource with uid:" + uid + " exist in DB.");
                 dehResourceService.deleteByUid(uid);
                 attachmentService.deleteAttachments(dehResource.get().getAttachment());
                 return ResponseEntity.status(HttpStatus.OK).body("Successfully deleted resource with uid: " + uid);
             }
-            log.error("Access denied for resource with uid:" + uid + "for user: " + userId);
+            log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
             throw new UnauthorizedException("Access denied for resource with uid: " + uid);
         }
         log.error("Resource with uid:" + uid + " not found");
@@ -217,19 +201,14 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = @Content)})
     @PatchMapping(path = "/{uid}", consumes = {"application/json-patch+json"})
-    public DehResource partialUpdateDehResource(@PathVariable(value = "uid") String uid, @RequestBody JsonPatch patch,
-                                                @RequestHeader(value = "user-id") String userId) throws JsonPatchException, JsonProcessingException {
+    public DehResource partialUpdateDehResource(@PathVariable(value = "uid") String uid, @RequestBody JsonPatch patch) throws JsonPatchException, JsonProcessingException {
 
         log.info("partialUpdateDehResource called.");
 
-        if (userId == null) {
-            log.error("User id is missing.");
-            throw new BadRequestException("User id is missing");
-        }
 
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
         if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getOwner().equals(userId)) {
+            if (dehResource.get().getOwner().equals(getAuthenticatedUser().getId())) {
                 log.info("DEH Resource with uid:" + uid + " exist in DB.");
 
                 DehResource dehResourcePatched = dehResourceService.partialUpdate(uid, patch);
@@ -239,7 +218,7 @@ public class DehResourceApi {
 
                 return dehResourcePatched;
             } else {
-                log.error("Access denied for resource with uid:" + uid + "for user: " + userId);
+                log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
                 throw new UnauthorizedException("Access denied for resource with uid: " + uid);
             }
         }
@@ -260,21 +239,17 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = @Content)})
     @PutMapping(path = "/{uid}", consumes = {"application/json"})
-    public DehResource updateDehResource(@PathVariable(value = "uid") String uid, @Valid @RequestBody DehResourceForCreationDTO dehResourceForUpdating,
-                                         @RequestHeader(value = "user-id") String userId) {
+    public DehResource updateDehResource(@PathVariable(value = "uid") String uid,
+                                         @Valid @RequestBody DehResourceForCreationDTO dehResourceForUpdating) {
 
         log.info("updateDehResource called.");
 
-        if (userId == null) {
-            log.error("User id is missing.");
-            throw new BadRequestException("User id is missing");
-        }
 
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
         if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getOwner().equals(userId)) {
+            if (dehResource.get().getOwner().equals(getAuthenticatedUser().getId())) {
                 log.info("DEH Resource with uid:" + uid + " exist in DB.");
-                dehResourceForUpdating.setOwner(userId);
+                dehResourceForUpdating.setOwner(getAuthenticatedUser().getId());
                 DehResource updatedDehResource = dehResourceService.update(uid, dehResourceForUpdating);
                 auditService.update(updatedDehResource);
 
@@ -282,7 +257,7 @@ public class DehResourceApi {
 
                 return updatedDehResource;
             } else {
-                log.error("Access denied for resource with uid:" + uid + "for user: " + userId);
+                log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
                 throw new UnauthorizedException("Access denied for resource with uid: " + uid);
             }
         }
@@ -294,19 +269,15 @@ public class DehResourceApi {
     @PutMapping(path = "multipart/{uid}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public DehResource updateDehResourceMultipartForm(@PathVariable(value = "uid") String uid,
                                                       @ModelAttribute @Valid DehResourceForCreationDtoMultipart dehResourceDto,
-                                                      BindingResult result, @RequestHeader(value = "user-id") String userId) throws IOException {
+                                                      BindingResult result) throws IOException {
 
         log.info("updateDehResourceMultipartForm called.");
 
-        if (userId == null) {
-            log.error("User id is missing.");
-            throw new BadRequestException("User id is missing");
-        }
 
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
 
         if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getOwner().equals(userId)) {
+            if (dehResource.get().getOwner().equals(getAuthenticatedUser().getId())) {
                 log.info("DEH Resource with uid:" + uid + " exist in DB.");
 
                 List<String> errors = new ArrayList<>();
@@ -331,7 +302,6 @@ public class DehResourceApi {
                     throw new BadRequestException(message);
                 }
 
-                dehResourceDto.setOwner(userId);
                 DehResource updatedDehResource = dehResourceService.updateMultipartForm(uid, dehResourceDto);
                 auditService.update(updatedDehResource);
 
@@ -339,7 +309,7 @@ public class DehResourceApi {
 
                 return updatedDehResource;
             } else {
-                log.error("Access denied for resource with uid:" + uid + "for user: " + userId);
+                log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
                 throw new UnauthorizedException("Access denied for resource with uid: " + uid);
             }
         }
@@ -359,28 +329,29 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = @Content)})
     @GetMapping(value = "/{uid}")
-    public DehResource findOneByUid(@PathVariable String uid,
-                                    @RequestHeader(value = "user-id") String userId) {
+    public DehResource findOneByUid(@PathVariable String uid) {
 
         log.info("findOneByUid called.");
 
-        if (userId == null) {
-            log.error("User id is missing.");
-            throw new BadRequestException("User id is missing");
-        }
 
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
 
         //TODO change implementation regarding DYMER
         if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getStatus() == 1 && dehResource.get().getAccessibility() == 0) {
+            if (dehResource.get().getOwner().equals(getAuthenticatedUser().getId())) {
+                log.info("DEH Resource with uid:" + uid + " exist in DB.");
+
+                // Store history consumption
+                return dehResourceService.updateNumberOfDownloads(uid);
+            }
+            else if (dehResource.get().getStatus() == 1 && dehResource.get().getAccessibility() == 0) {
                 log.info("DEH Resource with uid:" + uid + " exist in DB.");
 
                 // Store history consumption
                 return dehResourceService.updateNumberOfDownloads(uid);
                 // Convert fetched DEHResource to DTO object
             } else {
-                log.error("Access denied for resource with uid:" + uid + "for user: " + userId);
+                log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
                 throw new UnauthorizedException("Access denied for resource with uid: " + uid);
             }
         }
@@ -393,19 +364,14 @@ public class DehResourceApi {
     public Page<DehResource> findAll(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
                                      @RequestParam(name = "pageSize", required = false, defaultValue = "20") int pageSize,
                                      @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
-                                     @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder,
-                                     @RequestHeader(value = "user-id") String userId) {
+                                     @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder) {
 
         log.info("findAll called.");
 
-        if (userId == null) {
-            log.error("User id is missing.");
-            throw new BadRequestException("User id is missing");
-        }
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sortingOrder, sortBy);
 
-        return dehResourceService.findAll(pageable, userId);
+        return dehResourceService.findAll(pageable);
     }
 
 
@@ -453,22 +419,17 @@ public class DehResourceApi {
                                     @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder,
                                     @RequestParam(name = "localisationDistance", required = false) String localisationDistance,
                                     @RequestParam(name = "uid", required = false) String resourceUid,
-                                    @QuerydslPredicate(root = DehResource.class) Predicate predicate,
-                                    @RequestHeader(value = "user-id") String userId) {
+                                    @QuerydslPredicate(root = DehResource.class) Predicate predicate) {
 
         log.info("search called.");
 
-        if (userId == null) {
-            log.error("User id is missing.");
-            throw new BadRequestException("User id is missing");
-        }
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sortingOrder, sortBy);
 
         if (localisationDistance != null) {
             log.info("Filtered search with distance");
 
-            return dehResourceService.findAllByQuery(predicate, pageable, localisationDistance, userId);
+            return dehResourceService.findAllByQuery(predicate, pageable, localisationDistance);
         }
         if (resourceUid != null) {
             List<DehResource> dehResources = new ArrayList<>();
@@ -479,7 +440,7 @@ public class DehResourceApi {
             return new PageImpl<>(dehResources, PageRequest.of(pageable.getPageNumber()
                     , pageable.getPageSize()), 1);
         }
-        return dehResourceService.findAllByQuery(predicate, pageable, userId);
+        return dehResourceService.findAllByQuery(predicate, pageable);
     }
 
     @Operation(summary = "Rate DEH Resource")
@@ -495,15 +456,10 @@ public class DehResourceApi {
                     content = @Content)})
     @PostMapping(value = "/{uid}/rate")
     @CrossOrigin
-    public DehResource rateResource(@PathVariable String uid, @RequestBody Double rating,
-                                    @RequestHeader(value = "user-id") String userId) {
+    public DehResource rateResource(@PathVariable String uid, @RequestBody Double rating) {
 
         log.info("rateResource called.");
 
-        if (userId == null) {
-            log.error("User id is missing.");
-            throw new BadRequestException("User id is missing");
-        }
 
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
 
@@ -578,5 +534,13 @@ public class DehResourceApi {
 
         }
         return message;
+    }
+
+    private UserInfo getAuthenticatedUser() {
+        RrmToken authenticatedRrmToken = (RrmToken) SecurityContextHolder.getContext().getAuthentication();
+        UserInfo authenticatedUserInfo = authenticatedRrmToken.getUserInfo();
+
+        return authenticatedUserInfo;
+
     }
 }

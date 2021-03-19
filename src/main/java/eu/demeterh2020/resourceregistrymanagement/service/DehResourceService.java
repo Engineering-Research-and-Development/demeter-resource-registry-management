@@ -82,7 +82,7 @@ public interface DehResourceService {
      * @param pageable - object with defined page, size and sort
      * @return page with all DEH Resources in DB
      */
-    Page<DehResource> findAll(Pageable pageable, String userId);
+    Page<DehResource> findAll(Pageable pageable);
 
     /**
      * Method for getting all DEH Resources which corresponds to specific criteria/filter from  from DB
@@ -91,7 +91,7 @@ public interface DehResourceService {
      * @param pageable  - object with defined page, size and sort
      * @return page with all DEH Resources in DB
      */
-    Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable, String userId);
+    Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable);
 
     /**
      * Method for getting all DEH Resources which corresponds to specific criteria/filter from  from DB, and calculates
@@ -101,7 +101,7 @@ public interface DehResourceService {
      * @param localisationDistance string of localisation request given in format "latitude,longitude,distance"
      * @return page with all DEH Resources in DB
      */
-    Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable, String localisationDistance, String userId);
+    Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable, String localisationDistance);
 
     /**
      * Method for getting all names categories of DEH Resources stored in DB

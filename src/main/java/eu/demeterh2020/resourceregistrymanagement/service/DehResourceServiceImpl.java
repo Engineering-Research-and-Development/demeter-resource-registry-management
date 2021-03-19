@@ -11,13 +11,15 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import com.mysema.commons.lang.Assert;
 import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.Attachment;
+import eu.demeterh2020.resourceregistrymanagement.domain.Author;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import eu.demeterh2020.resourceregistrymanagement.domain.QDehResource;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDTO;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDtoMultipart;
 import eu.demeterh2020.resourceregistrymanagement.logging.Loggable;
 import eu.demeterh2020.resourceregistrymanagement.repository.DehRepository;
-import eu.demeterh2020.resourceregistrymanagement.util.CompatibilityChecker;
+import eu.demeterh2020.resourceregistrymanagement.security.dto.RrmToken;
+import eu.demeterh2020.resourceregistrymanagement.security.dto.UserInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.geo.GeoJsonModule;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,14 +49,13 @@ public class DehResourceServiceImpl implements DehResourceService {
     @Autowired
     private DehRepository dehRepository;
 
-    @Autowired
-    private CompatibilityChecker compatibilityChecker;
 
     @Autowired
     private MongoTemplate mongoTemplate;
 
     @Autowired
     private AttachmentService attachmentService;
+
 
     /**
      * {@inheritDoc}
@@ -64,16 +66,15 @@ public class DehResourceServiceImpl implements DehResourceService {
 
         Assert.notNull(dehResource, "DEHResource must not be null!");
 
+        UserInfo authenticatedUser = getAuthenticatedUser();
+
         log.info("Saving DEHResource.", dehResource);
+        dehResource.setOwner(authenticatedUser.getId());
+        dehResource.setAuthor(new Author(authenticatedUser.getUsername(), authenticatedUser.getEmail()));
 
-        // Check if  DEHResource is compatible
-        if (compatibilityChecker.checkCompatibility(dehResource) == true) {
+        // Store DEHResource in DB
+        return dehRepository.save(dehResource);
 
-            // Store DEHResource in DB
-            return dehRepository.save(dehResource);
-        }
-
-        return null;
     }
 
     /**
@@ -135,6 +136,8 @@ public class DehResourceServiceImpl implements DehResourceService {
         targetDehResource.setAccessControlPolicies(dehResourceForUpdating.getAccessControlPolicies());
         targetDehResource.setUrl(dehResourceForUpdating.getUrl());
         targetDehResource.setLastUpdate(LocalDateTime.now());
+        targetDehResource.setAuthor(new Author(getAuthenticatedUser().getUsername(), getAuthenticatedUser().getEmail()));
+
         //TODO Fix the implementation
 //        ModelMapper modelMapper = new ModelMapper();
 //        modelMapper.getConfiguration().setSkipNullEnabled(true);
@@ -160,10 +163,9 @@ public class DehResourceServiceImpl implements DehResourceService {
         DehResource targetDehResource = dehRepository.findByUid(uid).orElse(null);
 
 
-
         //Save attachments
         if (dehResourceForUpdating.getAttachmentFile() != null
-                && !dehResourceForUpdating.getAttachmentFile().iterator().next().getResource().getFilename().equalsIgnoreCase("") ) {
+                && !dehResourceForUpdating.getAttachmentFile().iterator().next().getResource().getFilename().equalsIgnoreCase("")) {
             List<Attachment> savedAttachments = new ArrayList<>();
             List<MultipartFile> attachments = dehResourceForUpdating.getAttachmentFile();
             for (MultipartFile uploadedFile : attachments) {
@@ -191,6 +193,7 @@ public class DehResourceServiceImpl implements DehResourceService {
         targetDehResource.setAccessControlPolicies(dehResourceForUpdating.getAccessControlPolicies());
         targetDehResource.setUrl(dehResourceForUpdating.getUrl());
         targetDehResource.setLastUpdate(LocalDateTime.now());
+        targetDehResource.setAuthor(new Author(getAuthenticatedUser().getUsername(), getAuthenticatedUser().getEmail()));
         //TODO Fix the implementation
 //        ModelMapper modelMapper = new ModelMapper();
 //        modelMapper.getConfiguration().setSkipNullEnabled(true);
@@ -257,12 +260,13 @@ public class DehResourceServiceImpl implements DehResourceService {
      */
     @Override
     @Loggable
-    public Page<DehResource> findAll(Pageable pageable, String userId) {
+    public Page<DehResource> findAll(Pageable pageable) {
+
 
         log.info("Fetching all DEHResources from DB");
 
         Set<DehResource> allPublicResources = dehRepository.findAllByAccessibilityAndStatus(0, 1);
-        Set<DehResource> allOwnersResources = dehRepository.findAllByOwner(userId);
+        Set<DehResource> allOwnersResources = dehRepository.findAllByOwner(getAuthenticatedUser().getId());
 
         return setPaging(allPublicResources, allOwnersResources, pageable);
     }
@@ -272,12 +276,12 @@ public class DehResourceServiceImpl implements DehResourceService {
      */
     @Override
     @Loggable
-    public Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable, String userId) {
+    public Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable) {
 
         log.info("Fetching all DEHResources from DB with filters");
 
         Predicate newPredicate = QDehResource.dehResource.status.eq(1).and(QDehResource.dehResource.accessibility.eq(0)).and(predicate);
-        Predicate newPredicate1 = QDehResource.dehResource.owner.eq(userId).and(predicate);
+        Predicate newPredicate1 = QDehResource.dehResource.owner.eq(getAuthenticatedUser().getId()).and(predicate);
         Assert.notNull(pageable, "Paging criteria must not be null!");
         Set<DehResource> allPublicResources = dehRepository.findAll(newPredicate, pageable).stream().collect(Collectors.toSet());
         Set<DehResource> allOwnersResources = dehRepository.findAll(newPredicate1, pageable).stream().collect(Collectors.toSet());
@@ -292,14 +296,14 @@ public class DehResourceServiceImpl implements DehResourceService {
      */
     @Override
     @Loggable
-    public Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable, String localisationDistance, String userId) {
+    public Page<DehResource> findAllByQuery(Predicate predicate, Pageable pageable, String localisationDistance) {
 
         log.info("Fetching all DEHResources from DB with filters and distance");
 
         List<DehResource> dehResources = new ArrayList<>();
 
         Predicate newPredicate = QDehResource.dehResource.status.eq(1).and(QDehResource.dehResource.accessibility.eq(0)).and(predicate);
-        Predicate newPredicate1 = QDehResource.dehResource.owner.eq(userId).and(predicate);
+        Predicate newPredicate1 = QDehResource.dehResource.owner.eq(getAuthenticatedUser().getId()).and(predicate);
         Assert.notNull(pageable, "Paging criteria must not be null!");
         Set<DehResource> allPublicResources = dehRepository.findAll(newPredicate, pageable).stream().collect(Collectors.toSet());
         Set<DehResource> allOwnersResources = dehRepository.findAll(newPredicate1, pageable).stream().collect(Collectors.toSet());
@@ -450,5 +454,13 @@ public class DehResourceServiceImpl implements DehResourceService {
                 , pageable.getPageSize()), dehResources.size());
 
         return dehResourcePage;
+    }
+
+    private UserInfo getAuthenticatedUser() {
+        RrmToken authenticatedRrmToken = (RrmToken) SecurityContextHolder.getContext().getAuthentication();
+        UserInfo authenticatedUserInfo = authenticatedRrmToken.getUserInfo();
+
+        return authenticatedUserInfo;
+
     }
 }
