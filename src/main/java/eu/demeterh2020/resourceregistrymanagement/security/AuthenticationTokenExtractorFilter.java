@@ -37,9 +37,13 @@ public class AuthenticationTokenExtractorFilter extends OncePerRequestFilter {
         Authentication authentication = getAuthentication(request);
 
         if (authentication == null) {
-            logger.debug("x-subject-token not present in header");
-
-            resolver.resolveException(request, response, null, new BadRequestException("x-subject-token is missing in header"));
+            logger.warn("x-subject-token not present in header");
+            if (request.getRequestURI().contains("swagger") || request.getRequestURI().contains("api-docs")) {
+                logger.warn("Swagger call");
+                filterChain.doFilter(request, response);
+            } else {
+                resolver.resolveException(request, response, null, new BadRequestException("x-subject-token is missing in header"));
+            }
         } else {
             logger.debug("x-subject-token present in header - setting authentication");
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -55,12 +59,10 @@ public class AuthenticationTokenExtractorFilter extends OncePerRequestFilter {
         String accessToken = request.getHeader("x-subject-token");
 
         if (accessToken != null) {
-
             List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("USER"));
 
             return new RrmToken(accessToken, authorities);
         }
-
         return null;
     }
 }

@@ -13,12 +13,23 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+
+        //Permit those requests
+        http.authorizeRequests().antMatchers("/swagger").permitAll();
+        http.authorizeRequests().antMatchers("/swagger-ui/**").permitAll();
+        http.authorizeRequests().antMatchers("/swagger-ui.html").permitAll();
+        http.authorizeRequests().antMatchers("/swagger-resources/**").permitAll();
+        http.authorizeRequests().antMatchers("/webjars/springfox-swagger-ui/**").permitAll();
+        http.authorizeRequests().antMatchers("/api-docs/**").permitAll();
+        http.authorizeRequests().antMatchers("/v2/api-docs").permitAll();
+        http.authorizeRequests().antMatchers("/api-doc.html").permitAll();
+        http.authorizeRequests().antMatchers("/api-doc.pdf").permitAll();
+
+        //Filter requests
         http
                 .csrf().disable()
                 .addFilterAfter(accessTokenExtractorFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeRequests().anyRequest().authenticated();
-
-
     }
 
     @Override
