@@ -25,6 +25,7 @@ public class IdmAuthenticationProvider implements AuthenticationProvider {
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+
         logger.debug("Authenticating authenticationToken");
         RrmToken auth = (RrmToken) authentication;
         String accessToken = auth.getToken();
@@ -32,11 +33,10 @@ public class IdmAuthenticationProvider implements AuthenticationProvider {
         UserInfo userInfo = getUserInfoFromToken(accessToken);
 
         if (userInfo != null) {
-
+            logger.debug("x-subject-token valid");
             return new RrmToken(accessToken, userInfo, auth.getAuthorities());
         }
-
-        logger.debug("Bad access token");
+        logger.error("Bad x-subject-token ");
 
         return null;
     }
@@ -47,9 +47,11 @@ public class IdmAuthenticationProvider implements AuthenticationProvider {
         return clazz == RrmToken.class;
     }
 
-    /* Method for extracting x-subject token from header
+    /* Method for validation x-subject-token on IDM
      */
     private UserInfo getUserInfoFromToken(String token) {
+
+        logger.debug("method getUserInfoFromToken() called.");
 
         String idmUrl = "https://acs.bse.h2020-demeter-cloud.eu:5443/v1/auth/tokens";
 
