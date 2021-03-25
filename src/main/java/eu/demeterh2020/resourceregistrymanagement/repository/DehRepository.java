@@ -24,6 +24,8 @@ public interface DehRepository extends MongoRepository<DehResource, String>, Que
 
     Page<DehResource> findAll(Pageable page);
 
+    Set<DehResource> findAll(Predicate predicate);
+
     Page<DehResource> findAll(Predicate predicate, Pageable pageable);
 
     Set<DehResource> findAllByStatus(int status);
