@@ -1,9 +1,6 @@
 package eu.demeterh2020.resourceregistrymanagement.resource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.querydsl.core.types.Predicate;
@@ -14,9 +11,6 @@ import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreat
 import eu.demeterh2020.resourceregistrymanagement.exception.BadRequestException;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceAlreadyExists;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceNotFoundException;
-import eu.demeterh2020.resourceregistrymanagement.exception.UnauthorizedException;
-import eu.demeterh2020.resourceregistrymanagement.security.dto.RrmToken;
-import eu.demeterh2020.resourceregistrymanagement.security.dto.UserInfo;
 import eu.demeterh2020.resourceregistrymanagement.service.AttachmentService;
 import eu.demeterh2020.resourceregistrymanagement.service.AuditService;
 import eu.demeterh2020.resourceregistrymanagement.service.DehResourceService;
@@ -30,16 +24,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
-import org.springframework.data.mongodb.core.geo.GeoJsonModule;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
 import java.io.IOException;
@@ -67,7 +58,6 @@ public class DehResourceApi {
     @Autowired
     private ModelMapper modelMapper;
 
-
     @Operation(summary = "Register new DEH Resource")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "DEH Resource registered",
@@ -81,10 +71,6 @@ public class DehResourceApi {
     public DehResource saveDehResource(@Valid @RequestBody DehResourceForCreationDTO dehResourceForCreationDTO) {
 
         log.info("saveDehResource called.");
-
-        if (dehResourceService.existByName(dehResourceForCreationDTO.getName())) {
-            throw new ResourceAlreadyExists("Resource with a name " + dehResourceForCreationDTO.getName() + " already exists");
-        }
 
         DehResource converted = convertToDehResource(dehResourceForCreationDTO);
         DehResource savedResource = dehResourceService.save(converted);
@@ -110,54 +96,39 @@ public class DehResourceApi {
 
         log.info("saveDehResource called.");
 
-        List<String> errors = new ArrayList<>();
+        String validationErrors = checkValidationError(result);
 
-        //Check if there are errors in validation
-        if (result.hasErrors()) {
-            errors.add("Please correct next values:");
-            result.getFieldErrors().iterator().forEachRemaining(fieldError -> {
-                if (!fieldError.getCode().equalsIgnoreCase("MAX") || fieldError.getCode().equalsIgnoreCase("MIN")) {
-                    errors.add(fieldError.getField() + " can't be type: " + fieldError.getRejectedValue().getClass().getSimpleName() + checkValueType(fieldError.getField()));
-                }
-                if (fieldError.getCode().equalsIgnoreCase("MAX")) {
-                    errors.add(fieldError.getField() + " can't be: " + fieldError.getRejectedValue() + checkValueType(fieldError.getField().concat("Constraint")));
-                }
-                if (fieldError.getCode().equalsIgnoreCase("MIN")) {
-                    errors.add(fieldError.getField() + " can't be: " + fieldError.getRejectedValue() + checkValueType(fieldError.getField().concat("Constraint")));
-                }
-            });
-            String message = errors.stream().collect(Collectors.joining(" "));
-
-            throw new BadRequestException(message);
-        }
-
-        //Check if resource with same name exists
-        if (dehResourceService.existByName(dehResourceDto.getName())) {
-            throw new ResourceAlreadyExists("Resource with a name " + dehResourceDto.getName() + " already exists");
-        }
-
-        List<Attachment> savedAttachments = new ArrayList<>();
-
-        //Save attachments
-        if (dehResourceDto.getAttachmentFile() != null
-                && !dehResourceDto.getAttachmentFile().iterator().next().getResource().getFilename().equalsIgnoreCase("")) {
-            List<MultipartFile> attachments = dehResourceDto.getAttachmentFile();
-            for (MultipartFile uploadedFile : attachments) {
-                String attachmentId = attachmentService.saveAttachment(uploadedFile);
-                savedAttachments.add(attachmentService.getAttachment(attachmentId));
+        if (validationErrors == null) {
+            //Check if resource with same name exists
+            if (dehResourceService.existByName(dehResourceDto.getName())) {
+                throw new ResourceAlreadyExists("Resource with a name " + dehResourceDto.getName() + " already exists");
             }
+
+            if (dehResourceDto.getAttachmentFile() != null
+                    && !(dehResourceDto.getAttachmentFile().iterator().next().getResource().getFilename().equalsIgnoreCase(""))) {
+
+                List<Attachment> savedAttachments = attachmentService.saveMultipleAttachments(dehResourceDto.getAttachmentFile());
+                DehResource converted = convertFromMultipartToDehResource(dehResourceDto, savedAttachments);
+
+                DehResource savedResource = dehResourceService.save(converted);
+
+                log.info("DEH Resource saved with uid:" + savedResource.getUid());
+
+                return savedResource;
+            }
+
+            DehResource converted = convertFromMultipartToDehResource(dehResourceDto, null);
+
+            DehResource savedResource = dehResourceService.save(converted);
+
+            log.info("DEH Resource saved with uid:" + savedResource.getUid());
+
+            return savedResource;
         }
 
-        DehResource converted = convertFromMultipartToDehResource(dehResourceDto);
-        converted.setAttachment(savedAttachments);
-        DehResource savedResource = dehResourceService.save(converted);
-
-        log.info("DEH Resource saved with uid:" + savedResource.getUid());
-
-        return savedResource;
+        throw new BadRequestException(validationErrors);
     }
 
-    //TODO finish te deleteing of attachments form db
     @Operation(summary = "Delete existing DEH Resource")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "DEH Resource deleted",
@@ -173,19 +144,12 @@ public class DehResourceApi {
 
         log.info("deleteDehResource called.");
 
-
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
         if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getOwner().equals(getAuthenticatedUser().getId())) {
-                log.info("DEH Resource with uid:" + uid + " exist in DB.");
-                dehResourceService.deleteByUid(uid);
-                attachmentService.deleteAttachments(dehResource.get().getAttachment());
-                return ResponseEntity.status(HttpStatus.OK).body("Successfully deleted resource with uid: " + uid);
-            }
-            log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
-            throw new UnauthorizedException("Access denied for resource with uid: " + uid);
+            dehResourceService.deleteByUid(uid);
+            return ResponseEntity.status(HttpStatus.OK).body("Successfully deleted resource with uid: " + uid);
         }
-        log.error("Resource with uid:" + uid + " not found");
+
         throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
     }
 
@@ -205,25 +169,12 @@ public class DehResourceApi {
 
         log.info("partialUpdateDehResource called.");
 
+        DehResource dehResourcePatched = dehResourceService.partialUpdate(uid, patch);
+        auditService.update(dehResourcePatched);
 
-        Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
-        if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getOwner().equals(getAuthenticatedUser().getId())) {
-                log.info("DEH Resource with uid:" + uid + " exist in DB.");
+        log.info("DEH Resource with uid:" + uid + " patched.", dehResourcePatched);
 
-                DehResource dehResourcePatched = dehResourceService.partialUpdate(uid, patch);
-                auditService.update(dehResourcePatched);
-
-                log.info("DEH Resource with uid:" + uid + " patched.", dehResourcePatched);
-
-                return dehResourcePatched;
-            } else {
-                log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
-                throw new UnauthorizedException("Access denied for resource with uid: " + uid);
-            }
-        }
-        log.error("Resource with uid:" + uid + " not found");
-        throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
+        return dehResourcePatched;
 
     }
 
@@ -244,25 +195,13 @@ public class DehResourceApi {
 
         log.info("updateDehResource called.");
 
+        DehResource updatedDehResource = dehResourceService.update(uid, dehResourceForUpdating);
+        auditService.update(updatedDehResource);
 
-        Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
-        if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getOwner().equals(getAuthenticatedUser().getId())) {
-                log.info("DEH Resource with uid:" + uid + " exist in DB.");
-                dehResourceForUpdating.setOwner(getAuthenticatedUser().getId());
-                DehResource updatedDehResource = dehResourceService.update(uid, dehResourceForUpdating);
-                auditService.update(updatedDehResource);
+        log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
 
-                log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
+        return updatedDehResource;
 
-                return updatedDehResource;
-            } else {
-                log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
-                throw new UnauthorizedException("Access denied for resource with uid: " + uid);
-            }
-        }
-        log.error("Resource with uid:" + uid + " not found");
-        throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
     }
 
     //TODO check with Marco and change the updating of attachment
@@ -273,48 +212,21 @@ public class DehResourceApi {
 
         log.info("updateDehResourceMultipartForm called.");
 
+        String validationErrors = checkValidationError(result);
 
-        Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
+        if (validationErrors == null) {
 
-        if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getOwner().equals(getAuthenticatedUser().getId())) {
-                log.info("DEH Resource with uid:" + uid + " exist in DB.");
+            DehResource updatedDehResource = dehResourceService.updateMultipartForm(uid, dehResourceDto);
+            auditService.update(updatedDehResource);
 
-                List<String> errors = new ArrayList<>();
+            log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
 
-                //Check if there are errors in validation
-                if (result.hasErrors()) {
-                    errors.add("Please correct next values:");
-                    result.getFieldErrors().iterator().forEachRemaining(fieldError -> {
-                        if (!fieldError.getCode().equalsIgnoreCase("MAX") || fieldError.getCode().equalsIgnoreCase("MIN")) {
-                            errors.add(fieldError.getField() + " can't be type: " + fieldError.getRejectedValue().getClass().getSimpleName() + checkValueType(fieldError.getField()));
-                        }
-                        if (fieldError.getCode().equalsIgnoreCase("MAX")) {
-                            errors.add(fieldError.getField() + " can't be: " + fieldError.getRejectedValue() + checkValueType(fieldError.getField().concat("Constraint")));
-                        }
-                        if (fieldError.getCode().equalsIgnoreCase("MIN")) {
-                            errors.add(fieldError.getField() + " can't be: " + fieldError.getRejectedValue() + checkValueType(fieldError.getField().concat("Constraint")));
-                        }
-                    });
+            return updatedDehResource;
 
-                    String message = errors.stream().collect(Collectors.joining(" "));
-
-                    throw new BadRequestException(message);
-                }
-
-                DehResource updatedDehResource = dehResourceService.updateMultipartForm(uid, dehResourceDto);
-                auditService.update(updatedDehResource);
-
-                log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
-
-                return updatedDehResource;
-            } else {
-                log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
-                throw new UnauthorizedException("Access denied for resource with uid: " + uid);
-            }
         }
-        log.error("Resource with uid:" + uid + " not found");
-        throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
+
+        throw new BadRequestException(validationErrors);
+
     }
 
     @Operation(summary = "Find DEH Resource by uid")
@@ -333,27 +245,11 @@ public class DehResourceApi {
 
         log.info("findOneByUid called.");
 
-
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
 
         //TODO change implementation regarding DYMER
         if (dehResource.isPresent()) { // resource exist in DB
-            if (dehResource.get().getOwner().equals(getAuthenticatedUser().getId())) {
-                log.info("DEH Resource with uid:" + uid + " exist in DB.");
-
-                // Store history consumption
-                return dehResourceService.updateNumberOfDownloads(uid);
-            }
-            else if (dehResource.get().getStatus() == 1 && dehResource.get().getAccessibility() == 0) {
-                log.info("DEH Resource with uid:" + uid + " exist in DB.");
-
-                // Store history consumption
-                return dehResourceService.updateNumberOfDownloads(uid);
-                // Convert fetched DEHResource to DTO object
-            } else {
-                log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
-                throw new UnauthorizedException("Access denied for resource with uid: " + uid);
-            }
+            return dehResourceService.updateNumberOfDownloads(uid);
         }
         log.error("Resource with uid:" + uid + " not found");
         throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
@@ -368,12 +264,10 @@ public class DehResourceApi {
 
         log.info("findAll called.");
 
-
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sortingOrder, sortBy);
-
-        return dehResourceService.findAll(pageable);
+        Page<DehResource> page = dehResourceService.findAll(pageable);
+        return page;
     }
-
 
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "DEH Resource Categories",
@@ -423,7 +317,6 @@ public class DehResourceApi {
 
         log.info("search called.");
 
-
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sortingOrder, sortBy);
 
         if (localisationDistance != null) {
@@ -440,7 +333,8 @@ public class DehResourceApi {
             return new PageImpl<>(dehResources, PageRequest.of(pageable.getPageNumber()
                     , pageable.getPageSize()), 1);
         }
-        return dehResourceService.findAllByQuery(predicate, pageable);
+
+        return dehResourceService.findAllByQuery(predicate, pageable, null);
     }
 
     @Operation(summary = "Rate DEH Resource")
@@ -460,19 +354,15 @@ public class DehResourceApi {
 
         log.info("rateResource called.");
 
-
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
 
-        if (dehResource.isPresent()) {
-            log.info("DEH Resource with uid:" + uid + " exist in DB.");
+        log.info("DEH Resource with uid:" + uid + " exist in DB.");
 
-            Double updatedRating = auditService.updateRatingByUid(uid, rating);
-            dehResource.get().setRating(updatedRating);
+        Double updatedRating = auditService.updateRatingByUid(uid, rating);
+        dehResource.get().setRating(updatedRating);
 
-            return dehResourceService.save(dehResource.get());
-        }
-        log.error("Resource with uid:" + uid + " not found");
-        throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
+        return dehResourceService.save(dehResource.get());
+
     }
 
 
@@ -489,25 +379,19 @@ public class DehResourceApi {
     /**
      * Private method for converting DEHResourceForCreation to DehResource POJO class
      */
-    private DehResource convertFromMultipartToDehResource(DehResourceForCreationDtoMultipart dehResourceForCreationDTO) {
+    private DehResource convertFromMultipartToDehResource(DehResourceForCreationDtoMultipart dehResourceForCreationDTO, List<Attachment> savedAttachments) {
         // Mapping DehResourceForCreationDTO to DehResource
         GeoJsonPoint location = new GeoJsonPoint(dehResourceForCreationDTO.getLocalisation().getX(), dehResourceForCreationDTO.getLocalisation().getY());
         DehResource dehResource = modelMapper.map(dehResourceForCreationDTO, DehResource.class);
         dehResource.getLocalisation().add(location);
+        dehResource.setAttachment(savedAttachments);
         return dehResource;
     }
 
-    private DehResource convertToDehResourceTest(String dehResource) throws JsonProcessingException {
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.registerModule(new GeoJsonModule());
-        objectMapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        DehResource modelDTO = objectMapper.readValue(dehResource, DehResource.class);
-        return modelDTO;
-    }
-
+    /**
+     * Private method for checking value types in DEHResourceForCreation object
+     */
     private String checkValueType(String value) {
         String message = new String();
         switch (value) {
@@ -536,11 +420,31 @@ public class DehResourceApi {
         return message;
     }
 
-    private UserInfo getAuthenticatedUser() {
-        RrmToken authenticatedRrmToken = (RrmToken) SecurityContextHolder.getContext().getAuthentication();
-        UserInfo authenticatedUserInfo = authenticatedRrmToken.getUserInfo();
+    /**
+     * Private method for checking validation errors in DEHResourceForCreation
+     */
+    private String checkValidationError(BindingResult result) {
 
-        return authenticatedUserInfo;
+        List<String> errors = new ArrayList<>();
 
+        //Check if there are errors in validation
+        if (result.hasErrors()) {
+            errors.add("Please correct next values:");
+            result.getFieldErrors().iterator().forEachRemaining(fieldError -> {
+                if (!fieldError.getCode().equalsIgnoreCase("MAX") || fieldError.getCode().equalsIgnoreCase("MIN")) {
+                    errors.add(fieldError.getField() + " can't be type: " + fieldError.getRejectedValue().getClass().getSimpleName() + checkValueType(fieldError.getField()));
+                }
+                if (fieldError.getCode().equalsIgnoreCase("MAX")) {
+                    errors.add(fieldError.getField() + " can't be: " + fieldError.getRejectedValue() + checkValueType(fieldError.getField().concat("Constraint")));
+                }
+                if (fieldError.getCode().equalsIgnoreCase("MIN")) {
+                    errors.add(fieldError.getField() + " can't be: " + fieldError.getRejectedValue() + checkValueType(fieldError.getField().concat("Constraint")));
+                }
+            });
+
+            return errors.stream().collect(Collectors.joining(" "));
+        }
+
+        return null;
     }
 }
