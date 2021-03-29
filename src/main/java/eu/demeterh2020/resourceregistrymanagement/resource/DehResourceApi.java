@@ -8,6 +8,7 @@ import eu.demeterh2020.resourceregistrymanagement.domain.Attachment;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDTO;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDtoMultipart;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.JsonResponse;
 import eu.demeterh2020.resourceregistrymanagement.exception.BadRequestException;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceAlreadyExists;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceNotFoundException;
@@ -19,16 +20,18 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import net.minidev.json.JSONObject;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -68,16 +71,16 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "401", description = "Unauthorized",
                     content = @Content)})
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public DehResource saveDehResource(@Valid @RequestBody DehResourceForCreationDTO dehResourceForCreationDTO) {
+    public JsonResponse saveDehResource(@Valid @RequestBody DehResourceForCreationDTO dehResourceForCreationDTO) {
 
-        log.info("saveDehResource called.");
+        log.info("saveDehResource() called.");
 
         DehResource converted = convertToDehResource(dehResourceForCreationDTO);
         DehResource savedResource = dehResourceService.save(converted);
 
         log.info("DEH Resource saved with uid:" + savedResource.getUid());
 
-        return savedResource;
+        return new JsonResponse(true, "DEH Resource successfully created", savedResource, null);
     }
 
 
@@ -91,10 +94,10 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "401", description = "Unauthorized",
                     content = @Content)})
     @PostMapping(path = "/multipart", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
-    public DehResource saveDehResourceMultipartForm(@ModelAttribute @Valid DehResourceForCreationDtoMultipart dehResourceDto,
-                                                    BindingResult result) throws IOException {
+    public JsonResponse saveDehResourceMultipartForm(@ModelAttribute @Valid DehResourceForCreationDtoMultipart dehResourceDto,
+                                                     BindingResult result) throws IOException {
 
-        log.info("saveDehResource called.");
+        log.info("saveDehResource() called.");
 
         String validationErrors = checkValidationError(result);
 
@@ -114,7 +117,7 @@ public class DehResourceApi {
 
                 log.info("DEH Resource saved with uid:" + savedResource.getUid());
 
-                return savedResource;
+                return new JsonResponse(true, "DEH Resource successfully created", savedResource, null);
             }
 
             DehResource converted = convertFromMultipartToDehResource(dehResourceDto, null);
@@ -123,7 +126,7 @@ public class DehResourceApi {
 
             log.info("DEH Resource saved with uid:" + savedResource.getUid());
 
-            return savedResource;
+            return new JsonResponse(true, "DEH Resource successfully created", savedResource, null);
         }
 
         throw new BadRequestException(validationErrors);
@@ -140,14 +143,14 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = @Content)})
     @DeleteMapping(value = "/{uid}")
-    public ResponseEntity deleteDehResource(@PathVariable("uid") String uid) {
+    public JsonResponse deleteDehResource(@PathVariable("uid") String uid) {
 
-        log.info("deleteDehResource called.");
+        log.info("deleteDehResource() called.");
 
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
         if (dehResource.isPresent()) { // resource exist in DB
             dehResourceService.deleteByUid(uid);
-            return ResponseEntity.status(HttpStatus.OK).body("Successfully deleted resource with uid: " + uid);
+            return new JsonResponse(true, "DEH Resource successfully deleted", null, "Successfully deleted resource with uid: " + uid);
         }
 
         throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
@@ -165,16 +168,16 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = @Content)})
     @PatchMapping(path = "/{uid}", consumes = {"application/json-patch+json"})
-    public DehResource partialUpdateDehResource(@PathVariable(value = "uid") String uid, @RequestBody JsonPatch patch) throws JsonPatchException, JsonProcessingException {
+    public JsonResponse partialUpdateDehResource(@PathVariable(value = "uid") String uid, @RequestBody JsonPatch patch) throws JsonPatchException, JsonProcessingException {
 
-        log.info("partialUpdateDehResource called.");
+        log.info("partialUpdateDehResource() called.");
 
         DehResource dehResourcePatched = dehResourceService.partialUpdate(uid, patch);
         auditService.update(dehResourcePatched);
 
         log.info("DEH Resource with uid:" + uid + " patched.", dehResourcePatched);
 
-        return dehResourcePatched;
+        return new JsonResponse(true, "DEH Resource successfully updated", dehResourcePatched, null);
 
     }
 
@@ -182,7 +185,7 @@ public class DehResourceApi {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "DEH Resource updated",
                     content = {@Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DehResource.class))}),
+                            schema = @Schema(implementation = JsonResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad request",
                     content = @Content),
             @ApiResponse(responseCode = "401", description = "Unauthorized",
@@ -190,27 +193,26 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = @Content)})
     @PutMapping(path = "/{uid}", consumes = {"application/json"})
-    public DehResource updateDehResource(@PathVariable(value = "uid") String uid,
-                                         @Valid @RequestBody DehResourceForCreationDTO dehResourceForUpdating) {
+    public JsonResponse updateDehResource(@PathVariable(value = "uid") String uid,
+                                          @Valid @RequestBody DehResourceForCreationDTO dehResourceForUpdating) {
 
-        log.info("updateDehResource called.");
+        log.info("updateDehResource() called.");
 
         DehResource updatedDehResource = dehResourceService.update(uid, dehResourceForUpdating);
         auditService.update(updatedDehResource);
 
         log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
 
-        return updatedDehResource;
-
+        return new JsonResponse(true, "DEH Resource successfully updated", updatedDehResource, null);
     }
 
     //TODO check with Marco and change the updating of attachment
     @PutMapping(path = "multipart/{uid}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public DehResource updateDehResourceMultipartForm(@PathVariable(value = "uid") String uid,
-                                                      @ModelAttribute @Valid DehResourceForCreationDtoMultipart dehResourceDto,
-                                                      BindingResult result) throws IOException {
+    public JsonResponse updateDehResourceMultipartForm(@PathVariable(value = "uid") String uid,
+                                                       @ModelAttribute @Valid DehResourceForCreationDtoMultipart dehResourceDto,
+                                                       BindingResult result) throws IOException {
 
-        log.info("updateDehResourceMultipartForm called.");
+        log.info("updateDehResourceMultipartForm() called.");
 
         String validationErrors = checkValidationError(result);
 
@@ -221,12 +223,11 @@ public class DehResourceApi {
 
             log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
 
-            return updatedDehResource;
+            return new JsonResponse(true, "DEH Resource successfully updated", updatedDehResource, null);
 
         }
 
         throw new BadRequestException(validationErrors);
-
     }
 
     @Operation(summary = "Find DEH Resource by uid")
@@ -241,15 +242,16 @@ public class DehResourceApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = @Content)})
     @GetMapping(value = "/{uid}")
-    public DehResource findOneByUid(@PathVariable String uid) {
+    public JsonResponse findOneByUid(@PathVariable String uid) {
 
-        log.info("findOneByUid called.");
+        log.info("findOneByUid() called.");
 
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
 
         //TODO change implementation regarding DYMER
         if (dehResource.isPresent()) { // resource exist in DB
-            return dehResourceService.updateNumberOfDownloads(uid);
+            DehResource numberOfDownloads = dehResourceService.updateNumberOfDownloads(uid);
+            return new JsonResponse(true, "DEH Resource found", numberOfDownloads, null);
         }
         log.error("Resource with uid:" + uid + " not found");
         throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
@@ -257,16 +259,17 @@ public class DehResourceApi {
 
     @Operation(summary = "List all DEH Resources")
     @GetMapping
-    public Page<DehResource> findAll(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
-                                     @RequestParam(name = "pageSize", required = false, defaultValue = "20") int pageSize,
-                                     @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
-                                     @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder) {
+    public JsonResponse findAll(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
+                                @RequestParam(name = "pageSize", required = false, defaultValue = "20") int pageSize,
+                                @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
+                                @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder) {
 
-        log.info("findAll called.");
+        log.info("findAll() called.");
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sortingOrder, sortBy);
-        Page<DehResource> page = dehResourceService.findAll(pageable);
-        return page;
+        Page<DehResource> allResources = dehResourceService.findAll(pageable);
+
+        return new JsonResponse(true, "All DEH Resources found", allResources.getContent(), createPagingExtraData(allResources));
     }
 
     @ApiResponses(value = {
@@ -280,11 +283,13 @@ public class DehResourceApi {
                     content = @Content)})
     @Operation(hidden = true, summary = "List all names of DEH Resources Categories")
     @GetMapping(value = "/categories")
-    public List<String> findAllCategories() {
+    public JsonResponse findAllCategories() {
 
-        log.info("findAllCategories called.");
+        log.info("findAllCategories() called.");
 
-        return dehResourceService.findAllCategories();
+        List<String> allCategories = dehResourceService.findAllCategories();
+
+        return new JsonResponse(true, "All categories found", allCategories, null);
     }
 
     @ApiResponses(value = {
@@ -298,43 +303,45 @@ public class DehResourceApi {
                     content = @Content)})
     @Operation(hidden = true, summary = "List all names of DEH Resources Types")
     @GetMapping(value = "/types")
-    public List<String> findAllTypes() {
+    public JsonResponse findAllTypes() {
 
-        log.info("findAllTypes called.");
+        log.info("findAllTypes() called.");
 
-        return dehResourceService.findAllTypes();
+        List<String> allTypes = dehResourceService.findAllTypes();
+
+        return new JsonResponse(true, "All types found", allTypes, null);
     }
 
     @Operation(summary = "Search for a DEH Resource by Filters")
     @GetMapping(value = "/search")
-    public Page<DehResource> search(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
-                                    @RequestParam(name = "pageSize", required = false, defaultValue = "20") int pageSize,
-                                    @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
-                                    @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder,
-                                    @RequestParam(name = "localisationDistance", required = false) String localisationDistance,
-                                    @RequestParam(name = "uid", required = false) String resourceUid,
-                                    @QuerydslPredicate(root = DehResource.class) Predicate predicate) {
+    public JsonResponse search(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
+                               @RequestParam(name = "pageSize", required = false, defaultValue = "20") int pageSize,
+                               @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
+                               @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder,
+                               @RequestParam(name = "localisationDistance", required = false) String localisationDistance,
+                               @RequestParam(name = "uid", required = false) String resourceUid,
+                               @QuerydslPredicate(root = DehResource.class) Predicate predicate) {
 
-        log.info("search called.");
+        log.info("search() called.");
 
         Pageable pageable = PageRequest.of(pageNumber, pageSize, sortingOrder, sortBy);
 
         if (localisationDistance != null) {
             log.info("Filtered search with distance");
 
-            return dehResourceService.findAllByQuery(predicate, pageable, localisationDistance);
+            Page<DehResource> allResources = dehResourceService.findAllByQuery(predicate, pageable, localisationDistance);
+
+            return new JsonResponse(true, "All DEH Resources by search criteria found", allResources.getContent(), createPagingExtraData(allResources));
+
         }
         if (resourceUid != null) {
-            List<DehResource> dehResources = new ArrayList<>();
             Optional<DehResource> resource = dehResourceService.findOneByUid(resourceUid);
-            if (resource.isPresent()) {
-                dehResources.add(resource.get());
-            }
-            return new PageImpl<>(dehResources, PageRequest.of(pageable.getPageNumber()
-                    , pageable.getPageSize()), 1);
+            return new JsonResponse(true, "Resource by uid found", resource, null);
         }
 
-        return dehResourceService.findAllByQuery(predicate, pageable, null);
+        Page<DehResource> allResources = dehResourceService.findAllByQuery(predicate, pageable, null);
+
+        return new JsonResponse(true, "All DEH Resources by search criteria found", allResources.getContent(), createPagingExtraData(allResources));
     }
 
     @Operation(summary = "Rate DEH Resource")
@@ -350,19 +357,13 @@ public class DehResourceApi {
                     content = @Content)})
     @PostMapping(value = "/{uid}/rate")
     @CrossOrigin
-    public DehResource rateResource(@PathVariable String uid, @RequestBody Double rating) {
+    public JsonResponse rateResource(@PathVariable String uid, @RequestBody Double rating) {
 
-        log.info("rateResource called.");
+        log.info("rateResource() called.");
 
-        Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
+        DehResource ratedDehResource = dehResourceService.rateResource(uid, rating);
 
-        log.info("DEH Resource with uid:" + uid + " exist in DB.");
-
-        Double updatedRating = auditService.updateRatingByUid(uid, rating);
-        dehResource.get().setRating(updatedRating);
-
-        return dehResourceService.save(dehResource.get());
-
+        return new JsonResponse(true, "DEH Resource successfully updated", ratedDehResource, null);
     }
 
 
@@ -446,5 +447,36 @@ public class DehResourceApi {
         }
 
         return null;
+    }
+
+    /**
+     * Private method for creating extra data related to paging
+     */
+    private JSONObject createPagingExtraData(Page<DehResource> page) {
+
+        JSONObject pageable = new JSONObject();
+
+        if (page.getPageable().toOptional().isPresent()) {
+            JSONObject pageableInfo = new JSONObject();
+
+            pageableInfo.appendField("sort", page.getPageable().getSort());
+            pageableInfo.appendField("pageNumber", page.getPageable().getPageNumber());
+            pageableInfo.appendField("pageSize", page.getPageable().getPageSize());
+            pageableInfo.appendField("offset", page.getPageable().getOffset());
+            pageableInfo.appendField("unpaged", page.getPageable().isUnpaged());
+            pageableInfo.appendField("paged", page.getPageable().isPaged());
+            pageableInfo.appendField("totalPages", page.getTotalPages());
+            pageableInfo.appendField("totalElements", page.getTotalElements());
+            pageableInfo.appendField("last", page.isLast());
+            pageableInfo.appendField("first", page.isFirst());
+            pageableInfo.appendField("numberOfElements", page.getNumberOfElements());
+
+
+            pageable.appendField("pageable", pageableInfo);
+        } else {
+            pageable.appendField("pageable", "Bad paging request, all resources returned");
+        }
+
+        return pageable;
     }
 }
