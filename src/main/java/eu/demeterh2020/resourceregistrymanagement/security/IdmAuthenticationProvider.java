@@ -64,7 +64,7 @@ public class IdmAuthenticationProvider implements AuthenticationProvider {
             return response.getBody().getUser();
 
         } catch (HttpClientErrorException ex) {
-            logger.error(ex.getStatusCode() + ", " + ex.getResponseBodyAsString());
+            logger.error("IDM: " + ex.getStatusCode() + ", " + ex.getResponseBodyAsString());
         }
         return null;
     }

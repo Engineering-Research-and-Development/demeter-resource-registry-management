@@ -111,7 +111,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         HttpStatus unauthorized = HttpStatus.UNAUTHORIZED;
         ExceptionData exceptionData = new ExceptionData(unauthorized, unauthorized.value(), ex.getMessage(), LocalDateTime.now(), request.getRequestURI());
 
-        JsonResponse jsonResponse = new JsonResponse(false, "Unauthorized! Not allowed to perform action.", null, exceptionData);
+        JsonResponse jsonResponse = new JsonResponse(false, "Unauthorized.", null, exceptionData);
 
         return new ResponseEntity<>(jsonResponse, successGlobal);
     }
