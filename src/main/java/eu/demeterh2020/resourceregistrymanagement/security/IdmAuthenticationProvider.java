@@ -33,7 +33,7 @@ public class IdmAuthenticationProvider implements AuthenticationProvider {
         UserInfo userInfo = getUserInfoFromToken(accessToken);
 
         if (userInfo != null) {
-            logger.debug("x-subject-token valid");
+            logger.info("x-subject-token valid");
             return new RrmToken(accessToken, userInfo, auth.getAuthorities());
         }
         logger.error("Bad x-subject-token ");

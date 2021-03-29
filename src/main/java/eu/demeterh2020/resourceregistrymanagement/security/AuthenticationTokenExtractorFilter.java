@@ -45,7 +45,7 @@ public class AuthenticationTokenExtractorFilter extends OncePerRequestFilter {
                 resolver.resolveException(request, response, null, new BadRequestException("x-subject-token is missing in header"));
             }
         } else {
-            logger.debug("x-subject-token present in header - setting authentication");
+            logger.info("x-subject-token present in header - setting authentication");
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             filterChain.doFilter(request, response);

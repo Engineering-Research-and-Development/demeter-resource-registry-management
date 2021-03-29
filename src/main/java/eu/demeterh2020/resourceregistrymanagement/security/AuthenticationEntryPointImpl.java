@@ -32,8 +32,7 @@ public class AuthenticationEntryPointImpl implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse,
                          AuthenticationException authenticationException) throws IOException, ServletException {
 
-        log.warn("Access denied for USER: {}; URL: {}. ",
-                httpServletRequest.getUserPrincipal() == null ? "N/A" : httpServletRequest.getUserPrincipal().getName(),
+        log.warn("Access denied for URL: {}. ",
                 httpServletRequest.getRequestURL() +
                         (httpServletRequest.getQueryString() == null ? "" : "?" + httpServletRequest.getQueryString()));
 

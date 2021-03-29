@@ -269,6 +269,7 @@ public class DehResourceServiceImpl implements DehResourceService {
      * {@inheritDoc}
      */
     @Override
+    @Loggable
     public boolean existByUid(String uid) {
 
         log.info("Method existByUid() called.");
@@ -281,6 +282,7 @@ public class DehResourceServiceImpl implements DehResourceService {
      * {@inheritDoc}
      */
     @Override
+    @Loggable
     public boolean existByName(String name) {
 
         log.info("Method existByName() called.");
