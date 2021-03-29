@@ -56,6 +56,9 @@ public class DehResourceServiceImpl implements DehResourceService {
     @Autowired
     private AttachmentService attachmentService;
 
+    @Autowired
+    AuditService auditService;
+
     /**
      * {@inheritDoc}
      */
@@ -394,6 +397,26 @@ public class DehResourceServiceImpl implements DehResourceService {
         return dehRepository.save(resourceAudit.get());
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Loggable
+    public DehResource rateResource(String uid, Double rating){
+
+        log.info("Method rateResource() called.");
+        log.info("Updating rating for DEHResource with uid: " + uid);
+
+        Assert.hasText(uid, "DEHResource uid must not be null!");
+
+        Optional<DehResource> dehResource = dehRepository.findByUid(uid);
+
+        Double updatedRating = auditService.updateRatingByUid(uid, rating);
+
+        dehResource.get().setRating(updatedRating);
+
+        return dehRepository.save(dehResource.get());
+    }
 
     /**
      * Computes the distance of two coordinates in meters

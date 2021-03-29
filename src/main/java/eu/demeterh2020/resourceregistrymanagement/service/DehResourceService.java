@@ -117,6 +117,14 @@ public interface DehResourceService {
      */
     DehResource updateNumberOfDownloads(String resourceUid);
 
+    /**
+     * Method for rating DEH Resource
+     *
+     * @param uid - DEH resource UID
+     * @param rating - rating
+     * @return Optional DEH Resource
+     */
+    DehResource rateResource(String uid, Double rating);
 
     //TODO Delete this after testing
     /**
