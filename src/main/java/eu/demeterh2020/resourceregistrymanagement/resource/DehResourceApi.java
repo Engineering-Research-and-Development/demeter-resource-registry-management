@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "api/v1/resources", produces = {MediaType.APPLICATION_JSON_VALUE})
-
 public class DehResourceApi {
 
     private final static Logger log = LoggerFactory.getLogger(DehResourceApi.class);

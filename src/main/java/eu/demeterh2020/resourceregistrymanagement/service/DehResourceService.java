@@ -85,7 +85,7 @@ public interface DehResourceService {
     Page<DehResource> findAll(Pageable pageable);
 
     /**
-     * Method for getting all DEH Resources which corresponds to specific criteria/filter from  from DB, and calculates
+     * Method for getting all DEH Resources which corresponds to specific criteria/filter from DB
      *
      * @param predicate            - object with criteria
      * @param pageable             - object with defined page, size and sort
