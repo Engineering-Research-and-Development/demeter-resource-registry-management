@@ -100,6 +100,12 @@ public class DehResourceServiceImpl implements DehResourceService {
         // Get DEHResource from DB by uid
         DehResource targetDehResource = dehRepository.findByUid(uid).orElse(null);
 
+
+        if (!targetDehResource.getOwner().equals(getAuthenticatedUser().getId())) {
+            log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
+            throw new UnauthorizedException("Access denied for resource with uid: " + uid);
+        }
+
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new Jdk8Module());
         objectMapper.registerModule(new GeoJsonModule());
@@ -131,6 +137,11 @@ public class DehResourceServiceImpl implements DehResourceService {
 
         // Get DEHResource from DB by uid
         DehResource targetDehResource = dehRepository.findByUid(uid).orElse(null);
+
+        if (!targetDehResource.getOwner().equals(getAuthenticatedUser().getId())) {
+            log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
+            throw new UnauthorizedException("Access denied for resource with uid: " + uid);
+        }
 
         if (dehRepository.existsByName(dehResourceForUpdating.getName()) && !targetDehResource.getOwner().equals(getAuthenticatedUser().getId())) {
             if (!targetDehResource.getOwner().equals(getAuthenticatedUser().getId())) {
@@ -224,6 +235,13 @@ public class DehResourceServiceImpl implements DehResourceService {
         log.info("Deleting DEHResource with uid:" + uid);
 
         Assert.hasText(uid, "DEHResource uid must not be null!");
+
+        DehResource targetDehResource = dehRepository.findByUid(uid).orElse(null);
+
+        if (!targetDehResource.getOwner().equals(getAuthenticatedUser().getId())) {
+            log.error("Access denied for resource with uid:" + uid + "for user: " + getAuthenticatedUser().getId());
+            throw new UnauthorizedException("Access denied for resource with uid: " + uid);
+        }
 
         attachmentService.deleteAttachments(dehRepository.findByUid(uid).get().getAttachments());
         attachmentService.deleteAttachments(dehRepository.findByUid(uid).get().getImages());
