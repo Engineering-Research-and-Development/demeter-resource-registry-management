@@ -1,11 +1,11 @@
 package eu.demeterh2020.resourceregistrymanagement.domain.dto;
 
-import eu.demeterh2020.resourceregistrymanagement.domain.Attachment;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -16,8 +16,8 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Schema(name = "DehResourceDTO", description = "Data object for creating DEH Resource")
-public class DehResourceForCreationDTO {
+@Schema(name = "DehResourceDTOMultipart", description = "Data object for creating DEH Resource Multipart")
+public class DehResourceForCreationDto {
 
     @Schema(example = "Resource 1", description = "Resource name", required = true)
     @NotNull(message = "Resource name can't be null")
@@ -39,15 +39,19 @@ public class DehResourceForCreationDTO {
     @Schema(example = "1.0", description = "Version of a resource", defaultValue = "null")
     private String version;
     @Schema(example = "1", description = "Maturity level of a resource", defaultValue = "null")
+    @Min(1)
+    @Max(5)
     private int maturityLevel;
-    @Schema(example = "1234-uidas-123", description = "Resource owner id")
+    @Schema(example = "1234-uidas-123", description = "Resource owner id", hidden = true)
     private String owner;
     @Schema(example = "[\"Applications\"]", description = "Resource tags", defaultValue = "null")
     private List<String> tags = new ArrayList<>();
-    @Schema(hidden = true)
-    private Attachment attachment;
-    @Schema(example = "[{ \"type\": \"Point\", \"coordinates\" : [ 0.0, 0.0 ]}]", description = "Resource location", defaultValue = "null")
-    private List<GeoJsonPoint> localisation = new ArrayList<>();
+    @Schema(example = "screen1.png", description = "Resource Images", defaultValue = "null")
+    private List<MultipartFile> images;
+    @Schema(example = "User manual.pdf", description = "Resource Attachments", defaultValue = "null")
+    private List<MultipartFile> attachments;
+    @Schema(example = "[{ \"type\": \"Point\", \"coordinates\" : [ 0.0, 0.0 ]}]", description = "Resource location. Example: \"[{ \\\"type\\\": \\\"Point\\\", \\\"coordinates\\\" : [ 0.0, 0.0 ]}]", defaultValue = "null")
+    private GeoJsonPoint localisation;
     @Schema(example = "1", description = "Accessibility of a resource. Available values: 0 - Public, 1 - Private, 2 - Restricted ", defaultValue = "0")
     @Min(0)
     @Max(2)
@@ -59,3 +63,4 @@ public class DehResourceForCreationDTO {
     @Schema(example = "www.google.com", description = "URL of a resource", defaultValue = "null")
     private String url;
 }
+

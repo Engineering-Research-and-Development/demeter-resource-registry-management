@@ -10,12 +10,10 @@ import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.mysema.commons.lang.Assert;
 import com.querydsl.core.types.Predicate;
-import eu.demeterh2020.resourceregistrymanagement.domain.Attachment;
 import eu.demeterh2020.resourceregistrymanagement.domain.Author;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import eu.demeterh2020.resourceregistrymanagement.domain.QDehResource;
-import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDTO;
-import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDtoMultipart;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForUpdateDto;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceAlreadyExists;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceNotFoundException;
 import eu.demeterh2020.resourceregistrymanagement.exception.UnauthorizedException;
@@ -34,7 +32,6 @@ import org.springframework.data.mongodb.core.geo.GeoJsonModule;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -57,6 +54,9 @@ public class DehResourceServiceImpl implements DehResourceService {
     private AttachmentService attachmentService;
 
     @Autowired
+    private MetricsService metricsService;
+
+    @Autowired
     AuditService auditService;
 
     /**
@@ -75,10 +75,8 @@ public class DehResourceServiceImpl implements DehResourceService {
             throw new ResourceAlreadyExists("Resource with a name " + dehResource.getName() + " already exists");
         }
 
-        UserInfo authenticatedUser = getAuthenticatedUser();
-
-        dehResource.setOwner(authenticatedUser.getId());
-        dehResource.setAuthor(new Author(authenticatedUser.getUsername(), authenticatedUser.getEmail()));
+        dehResource.setOwner(getAuthenticatedUser().getId());
+        dehResource.setAuthor(new Author(getAuthenticatedUser().getUsername(), getAuthenticatedUser().getEmail()));
 
         // Store DEHResource in DB
         return dehRepository.save(dehResource);
@@ -116,56 +114,13 @@ public class DehResourceServiceImpl implements DehResourceService {
         return dehRepository.save(dehResourcePatched);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @Loggable
-    public DehResource update(String uid, DehResourceForCreationDTO dehResourceForUpdating) {
-
-        log.info("Method update() called.");
-        log.info("Update for DEHResource with uid:" + uid);
-
-        Assert.hasText(uid, "DEHResource uid must not be null!");
-        Assert.notNull(dehResourceForUpdating, "DEHResource update data must not be null!");
-
-
-        // Get DEHResource from DB by uid
-        DehResource targetDehResource = dehRepository.findByUid(uid).orElse(null);
-
-        targetDehResource.setName(dehResourceForUpdating.getName());
-        targetDehResource.setType(dehResourceForUpdating.getType());
-        targetDehResource.setCategory(dehResourceForUpdating.getCategory());
-        targetDehResource.setDescription(dehResourceForUpdating.getDescription());
-        targetDehResource.setEndpoint(dehResourceForUpdating.getEndpoint());
-        targetDehResource.setStatus(dehResourceForUpdating.getStatus());
-        targetDehResource.setVersion(dehResourceForUpdating.getVersion());
-        targetDehResource.setMaturityLevel(dehResourceForUpdating.getMaturityLevel());
-        targetDehResource.setTags(dehResourceForUpdating.getTags());
-        targetDehResource.setLocalisation(dehResourceForUpdating.getLocalisation());
-        targetDehResource.setAccessibility(dehResourceForUpdating.getAccessibility());
-        targetDehResource.setDependencies(dehResourceForUpdating.getDependencies());
-        targetDehResource.setAccessControlPolicies(dehResourceForUpdating.getAccessControlPolicies());
-        targetDehResource.setUrl(dehResourceForUpdating.getUrl());
-        targetDehResource.setLastUpdate(LocalDateTime.now());
-        targetDehResource.setAuthor(new Author(getAuthenticatedUser().getUsername(), getAuthenticatedUser().getEmail()));
-
-        //TODO Fix the implementation
-//        ModelMapper modelMapper = new ModelMapper();
-//        modelMapper.getConfiguration().setSkipNullEnabled(true);
-//        modelMapper.map(dehResourceForUpdating, targetDehResource);
-
-        return dehRepository.save(targetDehResource);
-    }
-
-    //TODO Delete this after testing
 
     /**
      * {@inheritDoc}
      */
     @Override
     @Loggable
-    public DehResource updateMultipartForm(String uid, DehResourceForCreationDtoMultipart dehResourceForUpdating) throws IOException {
+    public DehResource update(String uid, DehResourceForUpdateDto dehResourceForUpdating) throws IOException {
 
         log.info("Method partialMultipartUpdate() called.");
         log.info("Update for DEHResource with uid:" + uid);
@@ -177,20 +132,49 @@ public class DehResourceServiceImpl implements DehResourceService {
         // Get DEHResource from DB by uid
         DehResource targetDehResource = dehRepository.findByUid(uid).orElse(null);
 
-        //Save attachments
-        if (dehResourceForUpdating.getAttachmentFile() != null
-                && !dehResourceForUpdating.getAttachmentFile().iterator().next().getResource().getFilename().equalsIgnoreCase("")) {
-            List<Attachment> savedAttachments = new ArrayList<>();
-            List<MultipartFile> attachments = dehResourceForUpdating.getAttachmentFile();
-            for (MultipartFile uploadedFile : attachments) {
-                String attachmentId = attachmentService.saveAttachment(uploadedFile);
-                savedAttachments.add(attachmentService.getAttachment(attachmentId));
+        if (dehRepository.existsByName(dehResourceForUpdating.getName()) && !targetDehResource.getOwner().equals(getAuthenticatedUser().getId())) {
+            if (!targetDehResource.getOwner().equals(getAuthenticatedUser().getId())) {
+                throw new ResourceAlreadyExists("Resource with the name " + dehResourceForUpdating.getName() + " already exists, please choose other name.");
             }
-            targetDehResource.setAttachment(savedAttachments);
+            if (targetDehResource.getOwner().equals(getAuthenticatedUser().getId()) && !targetDehResource.getUid().equals(uid)) {
+                throw new ResourceAlreadyExists("You already have DEH resource with the name" + dehResourceForUpdating.getName() + ", please choose other name.");
+            }
         }
 
+        if (dehResourceForUpdating.getDeleteFiles() != null) {
+            for (String deleteFile : dehResourceForUpdating.getDeleteFiles()) {
+                attachmentService.deleteAttachmentById(deleteFile);
+                targetDehResource.getAttachments().removeIf(attachment -> attachment.getId().equals(deleteFile));
+                targetDehResource.getImages().removeIf(image -> image.getId().equals(deleteFile));
+
+            }
+        }
+
+        if ((dehResourceForUpdating.getImages() != null
+                && !(dehResourceForUpdating.getImages().iterator().next().getResource().getFilename().equalsIgnoreCase("")))
+                || (dehResourceForUpdating.getAttachments() != null
+                && !(dehResourceForUpdating.getAttachments().iterator().next().getResource().getFilename().equalsIgnoreCase("")))) {
+
+            if (dehResourceForUpdating.getImages() != null
+                    && !(dehResourceForUpdating.getImages().iterator().next().getResource().getFilename().equalsIgnoreCase(""))) {
+                targetDehResource.getImages().addAll(attachmentService.saveMultipleAttachments(dehResourceForUpdating.getImages()));
+            }
+
+            if (dehResourceForUpdating.getAttachments() != null
+                    && !(dehResourceForUpdating.getAttachments().iterator().next().getResource().getFilename().equalsIgnoreCase(""))) {
+                targetDehResource.getAttachments().addAll(attachmentService.saveMultipleAttachments(dehResourceForUpdating.getAttachments()));
+            }
+
+        }
         List<GeoJsonPoint> location = new ArrayList<>();
-        location.add(dehResourceForUpdating.getLocalisation());
+
+        GeoJsonPoint updatedLocation = null;
+
+        if (dehResourceForUpdating.getLocalisation() != null) {
+            updatedLocation = new GeoJsonPoint(dehResourceForUpdating.getLocalisation().getY(), dehResourceForUpdating.getLocalisation().getX());
+        }
+
+        location.add(updatedLocation);
 
         targetDehResource.setName(dehResourceForUpdating.getName());
         targetDehResource.setType(dehResourceForUpdating.getType());
@@ -216,6 +200,19 @@ public class DehResourceServiceImpl implements DehResourceService {
         return dehRepository.save(targetDehResource);
     }
 
+    @Override
+    public String findOwnerByUid(String uid) {
+
+        Optional<DehResource> dehResource = dehRepository.findOwnerByUid(uid);
+
+        if (!dehResource.isPresent()) {
+            log.error("Resource with uid:" + uid + " not found");
+            throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
+        }
+        return dehResource.get().getOwner();
+
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -228,7 +225,9 @@ public class DehResourceServiceImpl implements DehResourceService {
 
         Assert.hasText(uid, "DEHResource uid must not be null!");
 
-        attachmentService.deleteAttachments(dehRepository.findByUid(uid).get().getAttachment());
+        attachmentService.deleteAttachments(dehRepository.findByUid(uid).get().getAttachments());
+        attachmentService.deleteAttachments(dehRepository.findByUid(uid).get().getImages());
+        metricsService.deleteByRrmId(uid);
         dehRepository.deleteByUid(uid);
     }
 
@@ -404,7 +403,7 @@ public class DehResourceServiceImpl implements DehResourceService {
      */
     @Override
     @Loggable
-    public DehResource rateResource(String uid, Double rating){
+    public DehResource rateResource(String uid, Double rating) {
 
         log.info("Method rateResource() called.");
         log.info("Updating rating for DEHResource with uid: " + uid);
@@ -460,7 +459,7 @@ public class DehResourceServiceImpl implements DehResourceService {
 
         log.info("Method isResourceCloseToCoords() called.");
 
-        if (resource.getLocalisation() == null || resource.getLocalisation().size() <= 0)
+        if (resource.getLocalisation() == null || resource.getLocalisation().size() <= 0 || resource.getLocalisation().get(0) == null)
             return false; // if it does not exist then it's not close
         // check all coordinates to find if one of them is within the specified distance
         for (int i = 0; i < resource.getLocalisation().size(); i++) {
@@ -489,7 +488,7 @@ public class DehResourceServiceImpl implements DehResourceService {
         try {
             latitude = Double.parseDouble(sarr[0]);
             longitude = Double.parseDouble(sarr[1]);
-            distance = Double.parseDouble(sarr[2]);
+            distance = Double.parseDouble(sarr[2]) * 1000;
         } catch (NumberFormatException e) {
             return false; // localisation request string is mal-formatted...
         }

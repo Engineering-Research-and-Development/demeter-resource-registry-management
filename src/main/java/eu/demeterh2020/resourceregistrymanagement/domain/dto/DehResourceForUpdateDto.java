@@ -17,7 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(name = "DehResourceDTOMultipart", description = "Data object for creating DEH Resource Multipart")
-public class DehResourceForCreationDtoMultipart {
+public class DehResourceForUpdateDto {
 
     @Schema(example = "Resource 1", description = "Resource name", required = true)
     @NotNull(message = "Resource name can't be null")
@@ -39,12 +39,15 @@ public class DehResourceForCreationDtoMultipart {
     @Schema(example = "1.0", description = "Version of a resource", defaultValue = "null")
     private String version;
     @Schema(example = "1", description = "Maturity level of a resource", defaultValue = "null")
+    @Min(1)
+    @Max(5)
     private int maturityLevel;
-    @Schema(example = "1234-uidas-123", description = "Resource owner id")
+    @Schema(example = "1234-uidas-123", description = "Resource owner id", hidden = true)
     private String owner;
     @Schema(example = "[\"Applications\"]", description = "Resource tags", defaultValue = "null")
     private List<String> tags = new ArrayList<>();
-    private List<MultipartFile> attachmentFile;
+    private List<MultipartFile> images;
+    private List<MultipartFile> attachments;
     @Schema(example = "[{ \"type\": \"Point\", \"coordinates\" : [ 0.0, 0.0 ]}]", description = "Resource location. Example: \"[{ \\\"type\\\": \\\"Point\\\", \\\"coordinates\\\" : [ 0.0, 0.0 ]}]", defaultValue = "null")
     private GeoJsonPoint localisation;
     @Schema(example = "1", description = "Accessibility of a resource. Available values: 0 - Public, 1 - Private, 2 - Restricted ", defaultValue = "0")
@@ -57,5 +60,7 @@ public class DehResourceForCreationDtoMultipart {
     private List<String> accessControlPolicies = new ArrayList<>();
     @Schema(example = "www.google.com", description = "URL of a resource", defaultValue = "null")
     private String url;
+    private List<String> deleteFiles = new ArrayList<>();
+
 }
 

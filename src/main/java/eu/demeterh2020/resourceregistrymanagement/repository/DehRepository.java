@@ -7,6 +7,7 @@ import eu.demeterh2020.resourceregistrymanagement.domain.QDehResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.querydsl.binding.QuerydslBinderCustomizer;
 import org.springframework.data.querydsl.binding.QuerydslBindings;
@@ -35,6 +36,9 @@ public interface DehRepository extends MongoRepository<DehResource, String>, Que
     Set<DehResource> findAllByAccessibilityAndStatus(int accessibility, int status);
 
     Set<DehResource> findAllByOwner(String owner);
+
+    @Query(value = "{ '_id' : ?0 }", fields = "{ 'owner' : 1}")
+    Optional<DehResource> findOwnerByUid(String uid);
 
     void deleteByUid(String uid);
 

@@ -6,8 +6,8 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.Attachment;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
-import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDTO;
-import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDtoMultipart;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDto;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForUpdateDto;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.JsonResponse;
 import eu.demeterh2020.resourceregistrymanagement.exception.BadRequestException;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceAlreadyExists;
@@ -60,6 +60,7 @@ public class DehResourceApi {
     @Autowired
     private ModelMapper modelMapper;
 
+
     @Operation(summary = "Register new DEH Resource")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "DEH Resource registered",
@@ -69,32 +70,9 @@ public class DehResourceApi {
                     content = @Content),
             @ApiResponse(responseCode = "401", description = "Unauthorized",
                     content = @Content)})
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public JsonResponse saveDehResource(@Valid @RequestBody DehResourceForCreationDTO dehResourceForCreationDTO) {
-
-        log.info("saveDehResource() called.");
-
-        DehResource converted = convertToDehResource(dehResourceForCreationDTO);
-        DehResource savedResource = dehResourceService.save(converted);
-
-        log.info("DEH Resource saved with uid:" + savedResource.getUid());
-
-        return new JsonResponse(true, "DEH Resource successfully created", savedResource, null);
-    }
-
-
-    @Operation(summary = "Register new DEH Resource Test Multipart form")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "DEH Resource registered",
-                    content = {@Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DehResource.class))}),
-            @ApiResponse(responseCode = "400", description = "Bad request",
-                    content = @Content),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content)})
-    @PostMapping(path = "/multipart", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
-    public JsonResponse saveDehResourceMultipartForm(@ModelAttribute @Valid DehResourceForCreationDtoMultipart dehResourceDto,
-                                                     BindingResult result) throws IOException {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public JsonResponse saveDehResource(@ModelAttribute @Valid DehResourceForCreationDto dehResourceDto,
+                                        BindingResult result) throws IOException {
 
         log.info("saveDehResource() called.");
 
@@ -106,11 +84,24 @@ public class DehResourceApi {
                 throw new ResourceAlreadyExists("Resource with a name " + dehResourceDto.getName() + " already exists");
             }
 
-            if (dehResourceDto.getAttachmentFile() != null
-                    && !(dehResourceDto.getAttachmentFile().iterator().next().getResource().getFilename().equalsIgnoreCase(""))) {
+            if ((dehResourceDto.getImages() != null
+                    && !(dehResourceDto.getImages().iterator().next().getResource().getFilename().equalsIgnoreCase("")))
+                    || (dehResourceDto.getAttachments() != null
+                    && !(dehResourceDto.getAttachments().iterator().next().getResource().getFilename().equalsIgnoreCase("")))) {
 
-                List<Attachment> savedAttachments = attachmentService.saveMultipleAttachments(dehResourceDto.getAttachmentFile());
-                DehResource converted = convertFromMultipartToDehResource(dehResourceDto, savedAttachments);
+                List<Attachment> savedAttachments = new ArrayList<>();
+                List<Attachment> savedImages = new ArrayList<>();
+
+                if (dehResourceDto.getImages() != null
+                        && !(dehResourceDto.getImages().iterator().next().getResource().getFilename().equalsIgnoreCase(""))) {
+                    savedImages = attachmentService.saveMultipleAttachments(dehResourceDto.getImages());
+                }
+
+                if (dehResourceDto.getAttachments() != null
+                        && !(dehResourceDto.getAttachments().iterator().next().getResource().getFilename().equalsIgnoreCase(""))) {
+                    savedAttachments = attachmentService.saveMultipleAttachments(dehResourceDto.getAttachments());
+                }
+                DehResource converted = convertFromMultipartToDehResource(dehResourceDto, savedAttachments, savedImages);
 
                 DehResource savedResource = dehResourceService.save(converted);
 
@@ -119,7 +110,7 @@ public class DehResourceApi {
                 return new JsonResponse(true, "DEH Resource successfully created", savedResource, null);
             }
 
-            DehResource converted = convertFromMultipartToDehResource(dehResourceDto, null);
+            DehResource converted = convertFromMultipartToDehResource(dehResourceDto, null, null);
 
             DehResource savedResource = dehResourceService.save(converted);
 
@@ -180,36 +171,22 @@ public class DehResourceApi {
 
     }
 
+
     @Operation(summary = "Update existing DEH Resource")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "DEH Resource updated",
                     content = {@Content(mediaType = "application/json",
-                            schema = @Schema(implementation = JsonResponse.class))}),
+                            schema = @Schema(implementation = DehResource.class))}),
             @ApiResponse(responseCode = "400", description = "Bad request",
                     content = @Content),
             @ApiResponse(responseCode = "401", description = "Unauthorized",
                     content = @Content),
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = @Content)})
-    @PutMapping(path = "/{uid}", consumes = {"application/json"})
+    @PutMapping(path = "/{uid}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public JsonResponse updateDehResource(@PathVariable(value = "uid") String uid,
-                                          @Valid @RequestBody DehResourceForCreationDTO dehResourceForUpdating) {
-
-        log.info("updateDehResource() called.");
-
-        DehResource updatedDehResource = dehResourceService.update(uid, dehResourceForUpdating);
-        auditService.update(updatedDehResource);
-
-        log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
-
-        return new JsonResponse(true, "DEH Resource successfully updated", updatedDehResource, null);
-    }
-
-    //TODO check with Marco and change the updating of attachment
-    @PutMapping(path = "multipart/{uid}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public JsonResponse updateDehResourceMultipartForm(@PathVariable(value = "uid") String uid,
-                                                       @ModelAttribute @Valid DehResourceForCreationDtoMultipart dehResourceDto,
-                                                       BindingResult result) throws IOException {
+                                          @ModelAttribute @Valid DehResourceForUpdateDto dehResourceDto,
+                                          BindingResult result) throws IOException {
 
         log.info("updateDehResourceMultipartForm() called.");
 
@@ -217,7 +194,7 @@ public class DehResourceApi {
 
         if (validationErrors == null) {
 
-            DehResource updatedDehResource = dehResourceService.updateMultipartForm(uid, dehResourceDto);
+            DehResource updatedDehResource = dehResourceService.update(uid, dehResourceDto);
             auditService.update(updatedDehResource);
 
             log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
@@ -247,10 +224,8 @@ public class DehResourceApi {
 
         Optional<DehResource> dehResource = dehResourceService.findOneByUid(uid);
 
-        //TODO change implementation regarding DYMER
         if (dehResource.isPresent()) { // resource exist in DB
-            DehResource numberOfDownloads = dehResourceService.updateNumberOfDownloads(uid);
-            return new JsonResponse(true, "DEH Resource found", numberOfDownloads, null);
+            return new JsonResponse(true, "DEH Resource found", dehResource.get(), null);
         }
         log.error("Resource with uid:" + uid + " not found");
         throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
@@ -259,7 +234,7 @@ public class DehResourceApi {
     @Operation(summary = "List all DEH Resources")
     @GetMapping
     public JsonResponse findAll(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
-                                @RequestParam(name = "pageSize", required = false, defaultValue = "20") int pageSize,
+                                @RequestParam(name = "pageSize", required = false, defaultValue = "100") int pageSize,
                                 @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
                                 @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder) {
 
@@ -362,29 +337,24 @@ public class DehResourceApi {
 
         DehResource ratedDehResource = dehResourceService.rateResource(uid, rating);
 
-        return new JsonResponse(true, "DEH Resource successfully updated", ratedDehResource, null);
+        return new JsonResponse(true, "DEH Resource successfully rated", ratedDehResource, null);
     }
 
 
     /**
-     * Private method for converting DEHResourceForCreation to DehResource POJO class
+     * Private method for converting DEHResourceForCreationDto to DehResource POJO class
      */
-    private DehResource convertToDehResource(DehResourceForCreationDTO dehResourceForCreationDTO) {
-        // Mapping DehResourceForCreationDTO to DehResource
-        DehResource dehResource = modelMapper.map(dehResourceForCreationDTO, DehResource.class);
+    private DehResource convertFromMultipartToDehResource(DehResourceForCreationDto dehResourceForCreationDTO, List<Attachment> savedAttachments, List<Attachment> savedImages) {
 
-        return dehResource;
-    }
+        GeoJsonPoint location = null;
+        if (dehResourceForCreationDTO.getLocalisation() != null) {
+            location = new GeoJsonPoint(dehResourceForCreationDTO.getLocalisation().getY(), dehResourceForCreationDTO.getLocalisation().getX());
+        }
 
-    /**
-     * Private method for converting DEHResourceForCreation to DehResource POJO class
-     */
-    private DehResource convertFromMultipartToDehResource(DehResourceForCreationDtoMultipart dehResourceForCreationDTO, List<Attachment> savedAttachments) {
-        // Mapping DehResourceForCreationDTO to DehResource
-        GeoJsonPoint location = new GeoJsonPoint(dehResourceForCreationDTO.getLocalisation().getX(), dehResourceForCreationDTO.getLocalisation().getY());
         DehResource dehResource = modelMapper.map(dehResourceForCreationDTO, DehResource.class);
         dehResource.getLocalisation().add(location);
-        dehResource.setAttachment(savedAttachments);
+        dehResource.setAttachments(savedAttachments);
+        dehResource.setImages(savedImages);
         return dehResource;
     }
 

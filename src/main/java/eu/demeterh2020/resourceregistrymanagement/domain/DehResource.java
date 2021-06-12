@@ -32,7 +32,7 @@ public class DehResource implements Serializable {
     @Schema(example = "Service", description = "Resource type", required = true)
     @NotNull(message = "Resource type can't be null")
     private String type;
-    @Schema(example = "[\"usiness Applications\"]", description = "Resource categories", defaultValue = "null")
+    @Schema(example = "[\"Business Applications\"]", description = "Resource categories", defaultValue = "null")
     private List<String> category = new ArrayList<>();
     @Schema(example = "Lorem ipsum dolor sit amet", description = "Description of a resource", defaultValue = "null")
     private String description;
@@ -46,6 +46,8 @@ public class DehResource implements Serializable {
     @Schema(example = "1.0", description = "Version of a resource", defaultValue = "null")
     private String version;
     @Schema(example = "1", description = "Maturity level of a resource", defaultValue = "null")
+    @Min(1)
+    @Max(5)
     private int maturityLevel;
     @Schema(example = "1234-uidas-123", description = "Resource owner id")
     @NotNull(message = "Resource owner can't be null")
@@ -55,7 +57,9 @@ public class DehResource implements Serializable {
     @Schema(example = "[\"Applications\"]", description = "Resource tags", defaultValue = "null")
     private List<String> tags = new ArrayList<>();
     @Schema(description = "WILL BE AVAILABLE IN NEXT RELEASE")
-    private List<Attachment> attachment = new ArrayList<>();
+    private List<Attachment> attachments = new ArrayList<>();
+    @Schema(description = "WILL BE AVAILABLE IN NEXT RELEASE")
+    private List<Attachment> images = new ArrayList<>();
     @Schema(example = "3.2", description = "Resource rating", defaultValue = "0.0")
     private Double rating;
     @Schema(example = "[{ \"type\": \"Point\", \"coordinates\" : [ 0.0, 0.0 ]}]", description = "Resource location", defaultValue = "null")

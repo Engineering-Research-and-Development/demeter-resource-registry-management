@@ -6,8 +6,7 @@ import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
-import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDTO;
-import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForCreationDtoMultipart;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.DehResourceForUpdateDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -35,7 +34,6 @@ public interface DehResourceService {
      */
     DehResource partialUpdate(String uid, JsonPatch patch) throws JsonPatchException, JsonProcessingException;
 
-
     /**
      * Method for updating existing DEH Resource in DB
      *
@@ -43,7 +41,7 @@ public interface DehResourceService {
      * @param dehResourceForUpdating - DehResource with modified fields
      * @return updated DEH resource
      */
-    DehResource update(String uid, DehResourceForCreationDTO dehResourceForUpdating);
+    DehResource update(String uid, DehResourceForUpdateDto dehResourceForUpdating) throws IOException;
 
     /**
      * Method for deleting DEH Resource by UID from DB
@@ -108,8 +106,6 @@ public interface DehResourceService {
      */
     List<String> findAllTypes();
 
-    //TODO Change implementation according to DEH Client
-
     /**
      * Method for updating History Consumption for DEH Resource in DB
      *
@@ -120,19 +116,17 @@ public interface DehResourceService {
     /**
      * Method for rating DEH Resource
      *
-     * @param uid - DEH resource UID
+     * @param uid    - DEH resource UID
      * @param rating - rating
      * @return Optional DEH Resource
      */
     DehResource rateResource(String uid, Double rating);
 
-    //TODO Delete this after testing
     /**
-     * Method for updating existing DEH Resource in DB
+     * Method for getting DEH Resource owner by UID from DB
      *
-     * @param uid                    - DEH resource uid
-     * @param dehResourceForUpdating - DehResource with modified fields
-     * @return updated DEH resource
+     * @param uid - DEH resource UID
+     * @return resource owner ID
      */
-    DehResource updateMultipartForm(String uid, DehResourceForCreationDtoMultipart dehResourceForUpdating) throws IOException;
+    String findOwnerByUid(String uid);
 }
