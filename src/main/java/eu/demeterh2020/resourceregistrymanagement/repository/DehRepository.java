@@ -49,7 +49,8 @@ public interface DehRepository extends MongoRepository<DehResource, String>, Que
     @Override
     default void customize(QuerydslBindings bindings, QDehResource root) {
 
-        bindings.excluding(root.attachment);
+        bindings.excluding(root.attachments);
+        bindings.excluding(root.images);
         bindings.excluding(root.localisation);
         bindings.excluding(root.billingInformation);
         bindings.excluding(root.downloadsHistory);
