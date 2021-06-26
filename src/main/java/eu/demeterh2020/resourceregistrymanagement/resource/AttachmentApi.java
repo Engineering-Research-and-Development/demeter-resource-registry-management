@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 @RestController
-@RequestMapping(value = "api/v1/attachments")
+@RequestMapping(value = "api/v1/attachment")
 public class AttachmentApi {
 
     private final static Logger log = LoggerFactory.getLogger(DehResourceApi.class);
@@ -111,7 +111,7 @@ public class AttachmentApi {
 
     @CrossOrigin
     @Operation(hidden = true)
-    @GetMapping(value = "/counter/{id}")
+    @PostMapping(value = "/counter/{id}")
     public void counter(@PathVariable String id) throws Exception {
 
         log.info("Counter() called.");

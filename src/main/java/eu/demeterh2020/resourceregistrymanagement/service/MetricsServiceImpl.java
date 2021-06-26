@@ -1,6 +1,7 @@
 package eu.demeterh2020.resourceregistrymanagement.service;
 
 import com.querydsl.core.types.Predicate;
+import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
 import eu.demeterh2020.resourceregistrymanagement.domain.Metrics;
 import eu.demeterh2020.resourceregistrymanagement.domain.MetricsData;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDto;
@@ -161,12 +162,13 @@ public class MetricsServiceImpl implements MetricsService {
 
     private Metrics createNewMetrics(MetricsDataDto metricsData) {
 
+        DehResource dehResource = dehResourceService.findOneByUid(metricsData.getRrmId()).get();
         Metrics metrics = new Metrics();
         List<MetricsData> containers = new ArrayList<>();
         containers.add(convertFromMetricsDataDtoToMetricsData(metricsData));
-        metrics.setName(metricsData.getImage());
+        metrics.setName(dehResource.getName());
         metrics.setRrmId(metricsData.getRrmId());
-        metrics.setOwner(dehResourceService.findOwnerByUid(metricsData.getRrmId()));
+        metrics.setOwner(dehResource.getOwner());
         metrics.setContainers(containers);
         metrics.setNumberOfInstances(1);
 

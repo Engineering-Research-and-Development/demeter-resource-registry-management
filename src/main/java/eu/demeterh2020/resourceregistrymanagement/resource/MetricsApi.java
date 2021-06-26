@@ -89,7 +89,7 @@ public class MetricsApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = {@Content(mediaType = "application/json",
                             schema = @Schema(implementation = JsonResponse.class))})})
-    @GetMapping(value = "/rrmid/{rrmId}")
+    @GetMapping(value = "/rrmId/{rrmId}")
     public JsonResponse findOneMetricByDehResourceUid(@PathVariable String rrmId, @RequestParam(name = "deh", required = false, defaultValue = "false") boolean deh) {
 
         log.info("findOneByDehResourceUid() called.");
@@ -120,7 +120,7 @@ public class MetricsApi {
             @ApiResponse(responseCode = "404", description = "DEH Resource not found",
                     content = {@Content(mediaType = "application/json",
                             schema = @Schema(implementation = JsonResponse.class))})})
-    @GetMapping(value = "/containerid/{containerId}")
+    @GetMapping(value = "/containerId/{containerId}")
     public JsonResponse findOneMetricByContainerId(@PathVariable String containerId) {
 
         MetricsDataDto container = metricsService.findOneByContainerId(containerId);
@@ -129,5 +129,4 @@ public class MetricsApi {
                 , container, null);
 
     }
-
 }
