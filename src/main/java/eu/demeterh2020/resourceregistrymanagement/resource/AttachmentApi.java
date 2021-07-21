@@ -111,7 +111,7 @@ public class AttachmentApi {
 
     @CrossOrigin
     @Operation(hidden = true)
-    @PostMapping(value = "/counter/{id}")
+    @GetMapping(value = "/counter/{id}")
     public void counter(@PathVariable String id) throws Exception {
 
         log.info("Counter() called.");
