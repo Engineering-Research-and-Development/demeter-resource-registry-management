@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 
 public interface MetricsService {
 
@@ -75,4 +76,17 @@ public interface MetricsService {
      */
     MetricsDto findOneByRrmIdDeh(String rrmId);
 
+    /**
+     * Method for getting all metrics of user's DEH Resources with metrics of DEH Resource which are consumed by user
+     *
+     * @return list with all metrics owned and consumed by user
+     */
+    Map<String, Object> findAllMetrics();
+
+    /**
+     * Method for getting all metrics of DEH Resources which are consumed by user
+     *
+     * @return list with all metrics consumed by user
+     */
+    List<MetricsDataDto> findAllMetricsConsumedByUser();
 }
