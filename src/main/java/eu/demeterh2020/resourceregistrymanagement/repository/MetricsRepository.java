@@ -20,5 +20,8 @@ public interface MetricsRepository extends MongoRepository<Metrics, String> {
     @Query(value = "{'containers.containerId' : ?0}")
     Optional<Metrics> findByContainerId(String containerId);
 
+    @Query(value = "{'containers.consumerId' : ?0}")
+    Optional<List<Metrics>> findByConsumerId(String containerId);
+
     void deleteByRrmId(String rrmId);
 }
