@@ -5,6 +5,7 @@ import eu.demeterh2020.resourceregistrymanagement.domain.dto.JsonResponse;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDataDto;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDto;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.UserResourceMetricsDto;
+import eu.demeterh2020.resourceregistrymanagement.exception.BadRequestException;
 import eu.demeterh2020.resourceregistrymanagement.service.MetricsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping(value = "api/v1/metrics", produces = {MediaType.APPLICATION_JSON_VALUE})
@@ -44,6 +46,10 @@ public class MetricsApi {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public JsonResponse saveMetricsData(@Valid @RequestBody List<MetricsDataDto> metricsData) {
 
+
+        if (metricsData.isEmpty()){
+            throw new BadRequestException("Metrics are empty");
+        }
         log.info("saveMetricsData() called.");
 
         metricsService.save(metricsData);
@@ -69,9 +75,9 @@ public class MetricsApi {
 
         log.info("findAll() called.");
 
-        List<UserResourceMetricsDto> allOwnerMetrics = metricsService.findAllByOwner();
+        Map<String, Object> allMetrics = metricsService.findAllMetrics();
 
-        return new JsonResponse(true, "All metrics for users DEH Resources found.", allOwnerMetrics, null);
+        return new JsonResponse(true, "All metrics for users DEH Resources found.", allMetrics , null);
 
     }
 
