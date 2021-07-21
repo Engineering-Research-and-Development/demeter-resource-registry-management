@@ -18,6 +18,10 @@ public class MetricsData {
 
     @JsonProperty("_id")
     private String containerId;
+    @JsonProperty("consumerId")
+    private String consumerId;
+    @JsonProperty("consumer")
+    private Author consumer;
     @JsonProperty("uptime")
     private Long uptime;
     @JsonProperty("hostname")
