@@ -1,12 +1,9 @@
 package eu.demeterh2020.resourceregistrymanagement.service;
 
 import com.querydsl.core.types.Predicate;
-import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
-import eu.demeterh2020.resourceregistrymanagement.domain.Metrics;
-import eu.demeterh2020.resourceregistrymanagement.domain.MetricsData;
-import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDto;
-import eu.demeterh2020.resourceregistrymanagement.domain.MetricsVolume;
+import eu.demeterh2020.resourceregistrymanagement.domain.*;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDataDto;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDto;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.UserResourceMetricsDto;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceNotFoundException;
 import eu.demeterh2020.resourceregistrymanagement.logging.Loggable;
@@ -84,8 +81,6 @@ public class MetricsServiceImpl implements MetricsService {
         }
 
         return convertFromMetricsDataToMetricsDataDto(metricsData.get().getContainers().stream().filter(container -> container.getContainerId().equals(containerId)).findAny().get());
-//        Optional<MetricsData> containerData = metricsData.get().getContainers().stream().filter(container -> container.getContainerId().equals(containerId)).findAny();
-//        return containerData.get();
     }
 
 
@@ -128,6 +123,35 @@ public class MetricsServiceImpl implements MetricsService {
 
         metricsDto.setContainers(containers);
         return metricsDto;
+    }
+
+    @Override
+    @Loggable
+    public Map<String, Object> findAllMetrics() {
+
+        Map<String, Object> allMetrics = new HashMap<>();
+        List<UserResourceMetricsDto> allOwnersMetrics = findAllByOwner();
+        List<MetricsDataDto> allMetricsConsumedByUser = findAllMetricsConsumedByUser();
+        allMetrics.put("owned", allOwnersMetrics);
+        allMetrics.put("consumed", allMetricsConsumedByUser);
+
+        return allMetrics;
+    }
+
+    @Override
+    @Loggable
+    public List<MetricsDataDto> findAllMetricsConsumedByUser() {
+        Optional<List<Metrics>> metricsData = metricsRepository.findByConsumerId(getAuthenticatedUser().getId());
+        List<MetricsDataDto> consumerMetricsData = new ArrayList<>();
+        if (metricsData.isPresent()) {
+            metricsData.get().forEach(metricsDataEntity -> metricsDataEntity.getContainers().stream().filter(container -> container.getConsumerId().equals(getAuthenticatedUser().getId())).collect(Collectors.toList()).forEach(metrics -> {
+                if (!metrics.getConsumerId().equalsIgnoreCase(metricsDataEntity.getOwner())) {
+                    consumerMetricsData.add(convertFromMetricsDataToMetricsDataDtoOnlyPeaks(metrics));
+                }
+            }));
+        }
+
+        return consumerMetricsData;
     }
 
     /**
@@ -191,24 +215,30 @@ public class MetricsServiceImpl implements MetricsService {
             existingMetrics.getContainers().stream().filter(container -> container.getContainerId().equals(metricsData.getContainerId())).findAny().ifPresent(container -> {
                 container.setUptime(metricsData.getUptime());
                 container.setLastUpdated(metricsData.getLastUpdated());
-                LocalDate recordedDateCpu = LocalDateTime.ofInstant(metricsData.getCpuConsumption().get(0).getTimestamp(), ZoneOffset.UTC).toLocalDate();
-                LocalDate recordedDateMemory = LocalDateTime.ofInstant(metricsData.getMemoryConsumption().get(0).getTimestamp(), ZoneOffset.UTC).toLocalDate();
-                if (container.getCpuConsumption().containsKey(recordedDateCpu)) {
-                    log.info("Updating CPU consumption metrics for existing date:" + recordedDateCpu);
-                    container.getCpuConsumption().get(recordedDateCpu).addAll(metricsData.getCpuConsumption());
-                    container.getCpuConsumption().get(recordedDateCpu).sort(Comparator.comparingDouble(MetricsVolume::getPercent).reversed());
-                } else {
-                    log.info("Creating CPU consumption for new date:" + recordedDateCpu);
-                    container.getCpuConsumption().put(LocalDateTime.ofInstant(metricsData.getCpuConsumption().get(0).getTimestamp(), ZoneOffset.UTC).toLocalDate(), metricsData.getCpuConsumption());
+                if (!getAuthenticatedUser().getUsername().equalsIgnoreCase(container.getConsumer().getUsername())) {
+                    container.getConsumer().setUsername(getAuthenticatedUser().getUsername());
                 }
-                if (container.getMemoryConsumption().containsKey(recordedDateMemory)) {
-                    log.info("Updating Memory consumption metrics for existing date:" + recordedDateCpu);
-                    container.getMemoryConsumption().get(recordedDateMemory).addAll(metricsData.getMemoryConsumption());
-                    container.getMemoryConsumption().get(recordedDateMemory).sort(Comparator.comparingDouble(MetricsVolume::getPercent).reversed());
-                } else {
-                    log.info("Creating Memory consumption for new date:" + recordedDateCpu);
-                    container.getMemoryConsumption().put(LocalDateTime.ofInstant(metricsData.getMemoryConsumption().get(0).getTimestamp(), ZoneOffset.UTC).toLocalDate(), metricsData.getMemoryConsumption());
-                }
+
+                Map<LocalDate, List<MetricsVolume>> cpuConsumption = distinctConsumptionByDate(metricsData.getCpuConsumption());
+                Map<LocalDate, List<MetricsVolume>> memoryConsumption = distinctConsumptionByDate(metricsData.getMemoryConsumption());
+
+                cpuConsumption.forEach((cpuConsumptionDate, cpuConsumptionMetrics) -> {
+                    if (container.getCpuConsumption().containsKey(cpuConsumptionDate)) {
+                        container.getCpuConsumption().get(cpuConsumptionDate).addAll(cpuConsumptionMetrics);
+                        container.getCpuConsumption().get(cpuConsumptionDate).sort(Comparator.comparingDouble(MetricsVolume::getPercent).reversed());
+                    } else {
+                        container.getCpuConsumption().put(cpuConsumptionDate, cpuConsumptionMetrics);
+                    }
+                });
+
+                memoryConsumption.forEach((memoryConsumptionDate, memoryConsumptionMetrics) -> {
+                    if (container.getMemoryConsumption().containsKey(memoryConsumptionDate)) {
+                        container.getMemoryConsumption().get(memoryConsumptionDate).addAll(memoryConsumptionMetrics);
+                        container.getMemoryConsumption().get(memoryConsumptionDate).sort(Comparator.comparingDouble(MetricsVolume::getPercent).reversed());
+                    } else {
+                        container.getMemoryConsumption().put(memoryConsumptionDate, memoryConsumptionMetrics);
+                    }
+                });
             });
 
         }
@@ -227,19 +257,28 @@ public class MetricsServiceImpl implements MetricsService {
         metrics.setRrmId(metricsDataDto.getRrmId());
         metrics.setLastUpdated(metricsDataDto.getLastUpdated());
         metrics.setContainerId(metricsDataDto.getContainerId());
-        Map<LocalDate, List<MetricsVolume>> cpuConsumption = new HashMap<>();
-        Map<LocalDate, List<MetricsVolume>> memoryConsumption = new HashMap<>();
+        metrics.setConsumerId(getAuthenticatedUser().getId());
+        metrics.setConsumer(new Author(getAuthenticatedUser().getUsername(), getAuthenticatedUser().getEmail()));
 
-        cpuConsumption.put(LocalDateTime.ofInstant(metricsDataDto.getCpuConsumption().get(0).getTimestamp(), ZoneOffset.UTC).toLocalDate(), metricsDataDto.getCpuConsumption());
-        memoryConsumption.put(LocalDateTime.ofInstant(metricsDataDto.getMemoryConsumption().get(0).getTimestamp(), ZoneOffset.UTC).toLocalDate(), metricsDataDto.getMemoryConsumption());
-
-        metrics.setCpuConsumption(cpuConsumption);
-        metrics.setMemoryConsumption(memoryConsumption);
-
+        metrics.setCpuConsumption(distinctConsumptionByDate(metricsDataDto.getCpuConsumption()));
+        metrics.setMemoryConsumption(distinctConsumptionByDate(metricsDataDto.getMemoryConsumption()));
 
         return metrics;
+    }
 
+    private Map<LocalDate, List<MetricsVolume>> distinctConsumptionByDate(List<MetricsVolume> metricsVolumes) {
+        Map<LocalDate, List<MetricsVolume>> distinctMetrics = new HashMap<>();
+        metricsVolumes.forEach(metricsVolume -> {
+            LocalDate metricsDate = LocalDateTime.ofInstant(metricsVolume.getTimestamp(), ZoneOffset.UTC).toLocalDate();
+            if (distinctMetrics.containsKey(metricsDate)) {
+                distinctMetrics.get(metricsDate).add(metricsVolume);
+            } else {
+                distinctMetrics.put(metricsDate, new ArrayList<>());
+                distinctMetrics.get(metricsDate).add(metricsVolume);
+            }
+        });
 
+        return distinctMetrics;
     }
 
     private UserInfo getAuthenticatedUser() {
@@ -263,6 +302,8 @@ public class MetricsServiceImpl implements MetricsService {
         metricsDataDto.setRrmId(metricsData.getRrmId());
         metricsDataDto.setLastUpdated(metricsData.getLastUpdated());
         metricsDataDto.setContainerId(metricsData.getContainerId());
+        metricsDataDto.setConsumerId(metricsData.getConsumerId());
+        metricsDataDto.setConsumer(metricsData.getConsumer());
         metricsDataDto.setCpuConsumption(metricsData.getCpuConsumption().values().stream().flatMap(List::stream).collect(Collectors.toList()));
         metricsDataDto.setMemoryConsumption(metricsData.getMemoryConsumption().values().stream().flatMap(List::stream).collect(Collectors.toList()));
 
@@ -281,7 +322,8 @@ public class MetricsServiceImpl implements MetricsService {
         metricsDataDto.setRrmId(metricsData.getRrmId());
         metricsDataDto.setLastUpdated(metricsData.getLastUpdated());
         metricsDataDto.setContainerId(metricsData.getContainerId());
-
+        metricsDataDto.setConsumerId(metricsData.getConsumerId());
+        metricsDataDto.setConsumer(metricsData.getConsumer());
         metricsData.getCpuConsumption().forEach((k, v) -> {
             metricsDataDto.getCpuConsumption().add(v.get(0));
         });
