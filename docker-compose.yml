@@ -11,7 +11,7 @@ services:
       - resource_registry_db:/data/configdb
 
   resource-registry-management:
-    image: demeterengteam/resource-registry-management:prod
+    image: mare/resource-registry-management:latest
     container_name: resource-registry-management
     ports:
       - ${RRM_EXPOSED_SERVER_PORT}:${RRM_SERVER_PORT}
@@ -19,6 +19,8 @@ services:
       - SERVER_PORT=${RRM_SERVER_PORT}
       - SPRING_DATA_MONGODB_DATABASE=${RRM_SPRING_DATA_MONGODB_DATABASE}
       - SPRING_DATA_MONGODB_HOST=${RRM_SPRING_DATA_MONGODB_HOST}
+      - IDM_TOKEN_URL=${RRM_IDM_TOKEN_URL}
+      - HTTPS_PROXY=${RRM_HTTPS_PROXY}
     depends_on:
       - resource-registry-db
     volumes:
