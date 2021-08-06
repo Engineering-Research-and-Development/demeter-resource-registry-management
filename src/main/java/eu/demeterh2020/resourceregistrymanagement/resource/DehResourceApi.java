@@ -1,8 +1,5 @@
 package eu.demeterh2020.resourceregistrymanagement.resource;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.github.fge.jsonpatch.JsonPatch;
-import com.github.fge.jsonpatch.JsonPatchException;
 import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.Attachment;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
@@ -16,10 +13,6 @@ import eu.demeterh2020.resourceregistrymanagement.service.AttachmentService;
 import eu.demeterh2020.resourceregistrymanagement.service.AuditService;
 import eu.demeterh2020.resourceregistrymanagement.service.DehResourceService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import net.minidev.json.JSONObject;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
@@ -62,17 +55,9 @@ public class DehResourceApi {
 
 
     @Operation(summary = "Register new DEH Resource")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "DEH Resource registered",
-                    content = {@Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DehResource.class))}),
-            @ApiResponse(responseCode = "400", description = "Bad request",
-                    content = @Content),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content)})
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public JsonResponse saveDehResource(@ModelAttribute @Valid DehResourceForCreationDto dehResourceDto,
-                                        BindingResult result) throws IOException {
+    public JsonResponse<DehResource, Object> saveDehResource(@ModelAttribute @Valid DehResourceForCreationDto dehResourceDto,
+                                                             BindingResult result) throws IOException {
 
         log.info("saveDehResource() called.");
 
@@ -123,17 +108,8 @@ public class DehResourceApi {
     }
 
     @Operation(summary = "Delete existing DEH Resource")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "DEH Resource deleted",
-                    content = @Content),
-            @ApiResponse(responseCode = "400", description = "Bad request",
-                    content = @Content),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "DEH Resource not found",
-                    content = @Content)})
     @DeleteMapping(value = "/{uid}")
-    public JsonResponse deleteDehResource(@PathVariable("uid") String uid) {
+    public JsonResponse<Object, String> deleteDehResource(@PathVariable("uid") String uid) {
 
         log.info("deleteDehResource() called.");
 
@@ -146,47 +122,27 @@ public class DehResourceApi {
         throw new ResourceNotFoundException("Resource with uid:" + uid + " not found");
     }
 
-    @Operation(hidden = true, summary = "Partial update existing DEH Resource")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "DEH Resource updated",
-                    content = {@Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DehResource.class))}),
-            @ApiResponse(responseCode = "400", description = "Bad request",
-                    content = @Content),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "DEH Resource not found",
-                    content = @Content)})
-    @PatchMapping(path = "/{uid}", consumes = {"application/json-patch+json"})
-    public JsonResponse partialUpdateDehResource(@PathVariable(value = "uid") String uid, @RequestBody JsonPatch patch) throws JsonPatchException, JsonProcessingException {
-
-        log.info("partialUpdateDehResource() called.");
-
-        DehResource dehResourcePatched = dehResourceService.partialUpdate(uid, patch);
-        auditService.update(dehResourcePatched);
-
-        log.info("DEH Resource with uid:" + uid + " patched.", dehResourcePatched);
-
-        return new JsonResponse(true, "DEH Resource successfully updated", dehResourcePatched, null);
-
-    }
+//    @Operation(hidden = true, summary = "Partial update existing DEH Resource")
+//    @PatchMapping(path = "/{uid}", consumes = {"application/json-patch+json"})
+//    public JsonResponse<DehResource, Object> partialUpdateDehResource(@PathVariable(value = "uid") String uid, @RequestBody JsonPatch patch) throws JsonPatchException, JsonProcessingException {
+//
+//        log.info("partialUpdateDehResource() called.");
+//
+//        DehResource dehResourcePatched = dehResourceService.partialUpdate(uid, patch);
+//        auditService.update(dehResourcePatched);
+//
+//        log.info("DEH Resource with uid:" + uid + " patched.", dehResourcePatched);
+//
+//        return new JsonResponse(true, "DEH Resource successfully updated", dehResourcePatched, null);
+//
+//    }
 
 
     @Operation(summary = "Update existing DEH Resource")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "DEH Resource updated",
-                    content = {@Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DehResource.class))}),
-            @ApiResponse(responseCode = "400", description = "Bad request",
-                    content = @Content),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "DEH Resource not found",
-                    content = @Content)})
     @PutMapping(path = "/{uid}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public JsonResponse updateDehResource(@PathVariable(value = "uid") String uid,
-                                          @ModelAttribute @Valid DehResourceForUpdateDto dehResourceDto,
-                                          BindingResult result) throws IOException {
+    public JsonResponse<DehResource, Object> updateDehResource(@PathVariable(value = "uid") String uid,
+                                                               @ModelAttribute @Valid DehResourceForUpdateDto dehResourceDto,
+                                                               BindingResult result) throws IOException {
 
         log.info("updateDehResourceMultipartForm() called.");
 
@@ -198,7 +154,6 @@ public class DehResourceApi {
             auditService.update(updatedDehResource);
 
             log.info("DEH Resource with uid:" + uid + " updated.", updatedDehResource);
-
             return new JsonResponse(true, "DEH Resource successfully updated", updatedDehResource, null);
 
         }
@@ -207,18 +162,8 @@ public class DehResourceApi {
     }
 
     @Operation(summary = "Find DEH Resource by uid")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "DEH Resource found",
-                    content = {@Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DehResource.class))}),
-            @ApiResponse(responseCode = "400", description = "Bad request",
-                    content = @Content),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "DEH Resource not found",
-                    content = @Content)})
     @GetMapping(value = "/{uid}")
-    public JsonResponse findOneByUid(@PathVariable String uid) {
+    public JsonResponse<DehResource, String> findOneByUid(@PathVariable String uid) {
 
         log.info("findOneByUid() called.");
 
@@ -233,10 +178,10 @@ public class DehResourceApi {
 
     @Operation(summary = "List all DEH Resources")
     @GetMapping
-    public JsonResponse findAll(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
-                                @RequestParam(name = "pageSize", required = false, defaultValue = "100") int pageSize,
-                                @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
-                                @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder) {
+    public JsonResponse<List<DehResource>, Object> findAll(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
+                                                           @RequestParam(name = "pageSize", required = false, defaultValue = "100") int pageSize,
+                                                           @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
+                                                           @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder) {
 
         log.info("findAll() called.");
 
@@ -246,18 +191,9 @@ public class DehResourceApi {
         return new JsonResponse(true, "All DEH Resources found", allResources.getContent(), createPagingExtraData(allResources));
     }
 
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "DEH Resource Categories",
-                    content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "400", description = "Bad request",
-                    content = @Content),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "DEH Resource Categories not found",
-                    content = @Content)})
     @Operation(hidden = true, summary = "List all names of DEH Resources Categories")
     @GetMapping(value = "/categories")
-    public JsonResponse findAllCategories() {
+    public JsonResponse<List<String>, Object> findAllCategories() {
 
         log.info("findAllCategories() called.");
 
@@ -266,18 +202,9 @@ public class DehResourceApi {
         return new JsonResponse(true, "All categories found", allCategories, null);
     }
 
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "DEH Resource Types",
-                    content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "400", description = "Bad request",
-                    content = @Content),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "DEH Resource Types not found",
-                    content = @Content)})
     @Operation(hidden = true, summary = "List all names of DEH Resources Types")
     @GetMapping(value = "/types")
-    public JsonResponse findAllTypes() {
+    public JsonResponse<List<String>, Object> findAllTypes() {
 
         log.info("findAllTypes() called.");
 
@@ -288,13 +215,13 @@ public class DehResourceApi {
 
     @Operation(summary = "Search for a DEH Resource by Filters")
     @GetMapping(value = "/search")
-    public JsonResponse search(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
-                               @RequestParam(name = "pageSize", required = false, defaultValue = "20") int pageSize,
-                               @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
-                               @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder,
-                               @RequestParam(name = "localisationDistance", required = false) String localisationDistance,
-                               @RequestParam(name = "uid", required = false) String resourceUid,
-                               @QuerydslPredicate(root = DehResource.class) Predicate predicate) {
+    public JsonResponse<List<DehResource>, Object> search(@RequestParam(name = "pageNumber", required = false, defaultValue = "0") int pageNumber,
+                                                          @RequestParam(name = "pageSize", required = false, defaultValue = "20") int pageSize,
+                                                          @RequestParam(name = "sortBy", required = false, defaultValue = "name") String sortBy,
+                                                          @RequestParam(name = "sortingOrder", required = false, defaultValue = "ASC") Sort.Direction sortingOrder,
+                                                          @RequestParam(name = "localisationDistance", required = false) String localisationDistance,
+                                                          @RequestParam(name = "uid", required = false) String resourceUid,
+                                                          @QuerydslPredicate(root = DehResource.class) Predicate predicate) {
 
         log.info("search() called.");
 
@@ -319,19 +246,9 @@ public class DehResourceApi {
     }
 
     @Operation(summary = "Rate DEH Resource")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "DEH Resource rated",
-                    content = {@Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DehResource.class))}),
-            @ApiResponse(responseCode = "400", description = "Bad request",
-                    content = @Content),
-            @ApiResponse(responseCode = "401", description = "Unauthorized",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "DEH Resource not found",
-                    content = @Content)})
     @PostMapping(value = "/{uid}/rate")
     @CrossOrigin
-    public JsonResponse rateResource(@PathVariable String uid, @RequestBody Double rating) {
+    public JsonResponse<DehResource, Object> rateResource(@PathVariable String uid, @RequestBody Double rating) {
 
         log.info("rateResource() called.");
 
