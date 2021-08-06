@@ -128,7 +128,7 @@ public class DehResourceServiceImpl implements DehResourceService {
     @Loggable
     public DehResource update(String uid, DehResourceForUpdateDto dehResourceForUpdating) throws IOException {
 
-        log.info("Method partialMultipartUpdate() called.");
+        log.info("Method update() called. Multipart file");
         log.info("Update for DEHResource with uid:" + uid);
 
         Assert.hasText(uid, "DEHResource uid must not be null!");
@@ -152,7 +152,7 @@ public class DehResourceServiceImpl implements DehResourceService {
             }
         }
 
-        if (dehResourceForUpdating.getDeleteFiles() != null) {
+        if (dehResourceForUpdating.getDeleteFiles().size() > 0) {
             for (String deleteFile : dehResourceForUpdating.getDeleteFiles()) {
                 attachmentService.deleteAttachmentById(deleteFile);
                 targetDehResource.getAttachments().removeIf(attachment -> attachment.getId().equals(deleteFile));
@@ -168,11 +168,14 @@ public class DehResourceServiceImpl implements DehResourceService {
 
             if (dehResourceForUpdating.getImages() != null
                     && !(dehResourceForUpdating.getImages().iterator().next().getResource().getFilename().equalsIgnoreCase(""))) {
+                log.info("IMAGES EXISTS IN DTO");
                 targetDehResource.getImages().addAll(attachmentService.saveMultipleAttachments(dehResourceForUpdating.getImages()));
             }
 
             if (dehResourceForUpdating.getAttachments() != null
                     && !(dehResourceForUpdating.getAttachments().iterator().next().getResource().getFilename().equalsIgnoreCase(""))) {
+                log.info("ATTACHMENTS EXISTS IN DTO");
+
                 targetDehResource.getAttachments().addAll(attachmentService.saveMultipleAttachments(dehResourceForUpdating.getAttachments()));
             }
 
@@ -208,6 +211,7 @@ public class DehResourceServiceImpl implements DehResourceService {
 //        modelMapper.getConfiguration().setSkipNullEnabled(true);
 //        modelMapper.map(dehResourceForUpdating, targetDehResource);
 
+        log.info("DEH RESOURCE BEFORE STORING IN DB", targetDehResource);
         return dehRepository.save(targetDehResource);
     }
 
