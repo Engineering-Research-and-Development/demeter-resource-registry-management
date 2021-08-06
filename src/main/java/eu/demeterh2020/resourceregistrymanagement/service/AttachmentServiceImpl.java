@@ -6,6 +6,8 @@ import com.mongodb.client.gridfs.model.GridFSFile;
 import eu.demeterh2020.resourceregistrymanagement.domain.Attachment;
 import eu.demeterh2020.resourceregistrymanagement.logging.Loggable;
 import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -22,6 +24,8 @@ import java.util.List;
 
 public class AttachmentServiceImpl implements AttachmentService {
 
+    private final static Logger log = LoggerFactory.getLogger(AttachmentServiceImpl.class);
+
     @Autowired
     private GridFsTemplate gridFsTemplate;
 
@@ -36,6 +40,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     public String saveAttachment(MultipartFile file) throws IOException {
         ObjectId id = gridFsTemplate.store(file.getInputStream(), file.getOriginalFilename(), file.getContentType());
 
+        log.info("SAVED ATTACHMENT ID ", id);
         return id.toString();
     }
 
@@ -48,6 +53,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         GridFSFile file = gridFsTemplate.findOne(new Query(Criteria.where("_id").is(id)));
 
         if (file != null) {
+            log.info("ATTACHMENT WITH ID: " + id +  "FOUND!");
             Attachment attachment = new Attachment();
             attachment.setId(file.getObjectId().toString());
             attachment.setOriginalName(file.getFilename());
@@ -59,6 +65,7 @@ public class AttachmentServiceImpl implements AttachmentService {
 
             return attachment;
         }
+        log.info("ATTACHMENT NOT FOUND!");
         return null;
     }
 
@@ -110,6 +117,7 @@ public class AttachmentServiceImpl implements AttachmentService {
 
         for (MultipartFile uploadedFile : attachments) {
             String attachmentId = saveAttachment(uploadedFile);
+
             savedAttachments.add(getAttachment(attachmentId));
         }
         return savedAttachments;
