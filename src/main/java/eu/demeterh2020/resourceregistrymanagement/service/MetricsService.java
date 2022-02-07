@@ -2,9 +2,8 @@ package eu.demeterh2020.resourceregistrymanagement.service;
 
 import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.Metrics;
-import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDto;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDataDto;
-import eu.demeterh2020.resourceregistrymanagement.domain.dto.UserResourceMetricsDto;
+import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -52,11 +51,11 @@ public interface MetricsService {
     Page<Metrics> findAll(Pageable pageable);
 
     /**
-     * Method for getting all owners DEH Resources metrics from DB
+     * Method for getting all owners DEH Resources metrics with daily peaks from DB
      *
      * @return list with all DEH Resources which has metrics
      */
-    List<UserResourceMetricsDto> findAllByOwner();
+    List<MetricsDto> findAllByOwner();
 
     /**
      * Method for getting all metrics of DEH Resources which corresponds to specific criteria/filter from DB

@@ -4,7 +4,6 @@ import com.querydsl.core.types.Predicate;
 import eu.demeterh2020.resourceregistrymanagement.domain.*;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDataDto;
 import eu.demeterh2020.resourceregistrymanagement.domain.dto.MetricsDto;
-import eu.demeterh2020.resourceregistrymanagement.domain.dto.UserResourceMetricsDto;
 import eu.demeterh2020.resourceregistrymanagement.exception.ResourceNotFoundException;
 import eu.demeterh2020.resourceregistrymanagement.logging.Loggable;
 import eu.demeterh2020.resourceregistrymanagement.repository.MetricsRepository;
@@ -130,7 +129,7 @@ public class MetricsServiceImpl implements MetricsService {
     public Map<String, Object> findAllMetrics() {
 
         Map<String, Object> allMetrics = new HashMap<>();
-        List<UserResourceMetricsDto> allOwnersMetrics = findAllByOwner();
+        List<MetricsDto> allOwnersMetrics = findAllByOwner();
         List<MetricsDataDto> allMetricsConsumedByUser = findAllMetricsConsumedByUser();
         allMetrics.put("owned", allOwnersMetrics);
         allMetrics.put("consumed", allMetricsConsumedByUser);
@@ -168,11 +167,14 @@ public class MetricsServiceImpl implements MetricsService {
      */
     @Override
     @Loggable
-    public List<UserResourceMetricsDto> findAllByOwner() {
+    public List<MetricsDto> findAllByOwner() {
 
-        List<UserResourceMetricsDto> metrics = metricsRepository.findAllByOwner(getAuthenticatedUser().getId());
+        List<Metrics> metrics = metricsRepository.findAllByOwner(getAuthenticatedUser().getId());
 
-        return metrics;
+        List<MetricsDto> metricsPeaks = new ArrayList<>();
+        metrics.forEach(metric -> metricsPeaks.add(convertFromMetricsToMetricsDtoOnlyPeaks(metric)));
+
+        return metricsPeaks;
     }
 
     /**
@@ -205,7 +207,6 @@ public class MetricsServiceImpl implements MetricsService {
         log.info("Updating metrics for DEH Resource with uid: " + metricsData.getRrmId() + "exists.");
 
         Metrics existingMetrics = metricsRepository.findByRrmId(metricsData.getRrmId()).get();
-
 
         if (!existingMetrics.getContainers().stream().filter(container -> container.getContainerId().equals(metricsData.getContainerId())).findAny().isPresent()) {
             log.info("Creating new container with id:" + metricsData.getContainerId() + " for DEH Resource with uid:" + metricsData.getRrmId());
@@ -309,6 +310,21 @@ public class MetricsServiceImpl implements MetricsService {
 
         return metricsDataDto;
 
+    }
+
+    private MetricsDto convertFromMetricsToMetricsDtoOnlyPeaks(Metrics metricsData) {
+
+        MetricsDto metricsDto = new MetricsDto();
+        metricsDto.setName(metricsData.getName());
+        metricsDto.setRrmId(metricsData.getRrmId());
+        metricsDto.setNumberOfInstances(metricsData.getNumberOfInstances());
+
+        List<MetricsDataDto> containers = new ArrayList<>();
+        metricsData.getContainers().forEach(container -> containers.add(convertFromMetricsDataToMetricsDataDtoOnlyPeaks(container)));
+
+        metricsDto.setContainers(containers);
+
+        return metricsDto;
     }
 
     private MetricsDataDto convertFromMetricsDataToMetricsDataDtoOnlyPeaks(MetricsData metricsData) {
