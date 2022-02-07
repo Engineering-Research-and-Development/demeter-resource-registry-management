@@ -1,5 +1,6 @@
 package eu.demeterh2020.resourceregistrymanagement.repository;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.StringPath;
 import eu.demeterh2020.resourceregistrymanagement.domain.DehResource;
@@ -29,10 +30,6 @@ public interface DehRepository extends MongoRepository<DehResource, String>, Que
 
     Page<DehResource> findAll(Predicate predicate, Pageable pageable);
 
-    Set<DehResource> findAllByStatus(int status);
-
-    Set<DehResource> findAllByAccessibility(int accessibility);
-
     Set<DehResource> findAllByAccessibilityAndStatus(int accessibility, int status);
 
     Set<DehResource> findAllByOwner(String owner);
@@ -56,10 +53,33 @@ public interface DehRepository extends MongoRepository<DehResource, String>, Que
         bindings.excluding(root.downloadsHistory);
         bindings.bind(String.class).first(
                 (StringPath path, String value) -> path.containsIgnoreCase(value));
-        bindings.bind(root.category).first((path, value) -> path.any().containsIgnoreCase(value.iterator().next()));
-        bindings.bind(root.tags).first((path, value) -> path.any().containsIgnoreCase(value.iterator().next()));
-        bindings.bind(root.dependencies).first((path, value) -> path.any().containsIgnoreCase(value.iterator().next()));
-        bindings.bind(root.accessControlPolicies).first((path, value) -> path.any().containsIgnoreCase(value.iterator().next()));
+
+        bindings.bind(root.description).first((path, value) -> path.containsIgnoreCase(value)
+                .or(root.name.containsIgnoreCase(value))
+                .or(root.category.any().containsIgnoreCase(value))
+                .or(root.tags.any().containsIgnoreCase(value))
+                .or(root.dependencies.any().containsIgnoreCase(value)));
+
+        bindings.bind(root.category).all((path, value) -> {
+            BooleanBuilder predicate = new BooleanBuilder();
+            value.forEach(o -> predicate.or(path.any().containsIgnoreCase(o.iterator().next())));
+            return Optional.of(predicate);
+        });
+        bindings.bind(root.tags).all((path, value) -> {
+            BooleanBuilder predicate = new BooleanBuilder();
+            value.forEach(o -> predicate.or(path.any().containsIgnoreCase(o.iterator().next())));
+            return Optional.of(predicate);
+        });
+        bindings.bind(root.dependencies).all((path, value) -> {
+            BooleanBuilder predicate = new BooleanBuilder();
+            value.forEach(o -> predicate.or(path.any().containsIgnoreCase(o.iterator().next())));
+            return Optional.of(predicate);
+        });
+        bindings.bind(root.accessControlPolicies).all((path, value) -> {
+            BooleanBuilder predicate = new BooleanBuilder();
+            value.forEach(o -> predicate.or(path.any().containsIgnoreCase(o.iterator().next())));
+            return Optional.of(predicate);
+        });
 
         bindings.bind(root.rating).all((path, value) -> {
             Iterator<? extends Double> it = value.iterator();
